@@ -6,6 +6,97 @@
 import { PlanetData } from '../data/planets';
 
 /**
+ * J2000.0 epoch Julian Date (January 1, 2000, noon TT)
+ */
+const J2000_EPOCH = 2451545.0;
+
+/**
+ * Reference date for planetary positions (updated daily)
+ * This ensures planetary positions remain consistent throughout the simulation
+ * but updates to reflect real-world positions each day
+ */
+let REFERENCE_DATE = new Date();
+let LAST_UPDATE_DAY = Math.floor(REFERENCE_DATE.getTime() / (1000 * 60 * 60 * 24));
+
+/**
+ * Update reference date if a new day has started
+ * This allows positions to update daily without recalculating every frame
+ */
+function updateReferenceDateIfNeeded(): void {
+  const now = new Date();
+  const currentDay = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+
+  if (currentDay > LAST_UPDATE_DAY) {
+    REFERENCE_DATE = now;
+    LAST_UPDATE_DAY = currentDay;
+  }
+}
+
+/**
+ * Convert a JavaScript Date to Julian Date
+ * @param date JavaScript Date object
+ * @returns Julian Date
+ */
+function dateToJulianDate(date: Date): number {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1; // JavaScript months are 0-indexed
+  const day = date.getUTCDate();
+  const hour = date.getUTCHours();
+  const minute = date.getUTCMinutes();
+  const second = date.getUTCSeconds();
+
+  // Calculate fractional day
+  const fractionalDay = day + (hour + minute / 60 + second / 3600) / 24;
+
+  // Adjust month and year for January/February
+  let a = year;
+  let m = month;
+  if (month <= 2) {
+    a = year - 1;
+    m = month + 12;
+  }
+
+  // Calculate Julian Date
+  const A = Math.floor(a / 100);
+  const B = 2 - A + Math.floor(A / 4);
+
+  const JD = Math.floor(365.25 * (a + 4716)) +
+             Math.floor(30.6001 * (m + 1)) +
+             fractionalDay + B - 1524.5;
+
+  return JD;
+}
+
+/**
+ * Calculate current mean longitude for a planet
+ * Based on NASA JPL Keplerian elements
+ * @param planet Planet data with J2000.0 orbital elements
+ * @param date Optional date (defaults to current date)
+ * @returns Mean longitude in degrees
+ */
+export function calculateCurrentMeanLongitude(
+  planet: PlanetData,
+  date: Date = new Date()
+): number {
+  // Calculate Julian Date for the given date
+  const JD = dateToJulianDate(date);
+
+  // Calculate centuries past J2000.0 epoch
+  const T = (JD - J2000_EPOCH) / 36525;
+
+  // Calculate mean longitude: L = L₀ + L' * T
+  let meanLongitude = planet.meanLongitudeJ2000 + (planet.meanLongitudeRate * T);
+
+  // Normalize to 0-360 degrees
+  meanLongitude = meanLongitude % 360;
+  if (meanLongitude < 0) {
+    meanLongitude += 360;
+  }
+
+  return meanLongitude;
+}
+
+/**
  * Calculate position in an elliptical orbit
  * @param time Current simulation time in seconds
  * @param planet Planet data with orbital parameters
@@ -22,8 +113,18 @@ export function calculateEllipticalOrbitPosition(
   // Convert orbital period from days to seconds
   const periodSeconds = orbitalPeriod * 24 * 60 * 60;
 
+  // Update reference date if a new day has started
+  updateReferenceDateIfNeeded();
+
+  // Calculate real-world position (mean longitude) based on reference date
+  // This ensures planets start at their actual positions when simulation time = 0
+  // Reference date updates daily to reflect current real-world positions
+  const currentMeanLongitude = calculateCurrentMeanLongitude(planet, REFERENCE_DATE);
+  const initialPhaseRadians = (currentMeanLongitude * Math.PI) / 180;
+
   // Mean anomaly (angle traveled as if in circular orbit)
-  const meanAnomaly = (2 * Math.PI * time) / periodSeconds;
+  // Start from current real-world position, then add simulation time advancement
+  const meanAnomaly = (2 * Math.PI * time) / periodSeconds + initialPhaseRadians;
 
   // Solve Kepler's equation for eccentric anomaly (E)
   // M = E - e * sin(E)

@@ -19,7 +19,7 @@ export default function Planet({ data }: PlanetProps) {
   const groupRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
 
-  const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime } = useStore();
+  const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime, timeSpeed, isPaused } = useStore();
   const isSelected = selectedPlanet?.name === data.name;
 
   // Load texture if available
@@ -40,9 +40,9 @@ export default function Planet({ data }: PlanetProps) {
 
   // Rotate planet on its axis
   useFrame((state, delta) => {
-    if (meshRef.current) {
+    if (meshRef.current && !isPaused) {
       const rotationSpeed = data.rotationPeriod > 0 ? 1 / (data.rotationPeriod * 24 * 60) : 0;
-      meshRef.current.rotation.y += delta * rotationSpeed * (data.rotationPeriod < 0 ? -1 : 1);
+      meshRef.current.rotation.y += delta * rotationSpeed * timeSpeed * (data.rotationPeriod < 0 ? -1 : 1);
     }
 
     // Update group position for orbital motion
@@ -66,9 +66,17 @@ export default function Planet({ data }: PlanetProps) {
       >
         <sphereGeometry args={[planetSize, 32, 32]} />
         {texture ? (
-          <meshStandardMaterial map={texture} />
+          <meshStandardMaterial
+            map={texture}
+            roughness={0.9}
+            metalness={0}
+          />
         ) : (
-          <meshStandardMaterial color={data.color} />
+          <meshStandardMaterial
+            color={data.color}
+            roughness={0.9}
+            metalness={0}
+          />
         )}
       </mesh>
 
@@ -87,16 +95,8 @@ export default function Planet({ data }: PlanetProps) {
         <Atmosphere
           radius={planetSize}
           color={data.color}
-          opacity={0.15}
+          opacity={0.12}
         />
-      )}
-
-      {/* Selection indicator */}
-      {isSelected && (
-        <mesh>
-          <ringGeometry args={[planetSize * 1.5, planetSize * 1.7, 64]} />
-          <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} />
-        </mesh>
       )}
 
       {/* Hover indicator */}
@@ -109,7 +109,15 @@ export default function Planet({ data }: PlanetProps) {
 
       {/* Label */}
       {showLabels && (
-        <Html distanceFactor={50}>
+        <Html
+          position={[0, planetSize * 1.8, 0]}
+          center
+          sprite
+          style={{
+            transition: 'all 0.2s',
+            pointerEvents: 'none',
+          }}
+        >
           <div
             style={{
               color: isSelected ? '#60a5fa' : hovered ? '#fff' : '#aaa',
@@ -118,7 +126,6 @@ export default function Planet({ data }: PlanetProps) {
               userSelect: 'none',
               pointerEvents: 'none',
               whiteSpace: 'nowrap',
-              transform: 'translate(-50%, 20px)',
             }}
           >
             {data.name}

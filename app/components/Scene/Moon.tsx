@@ -14,7 +14,7 @@ export default function Moon({ planetPosition }: MoonProps) {
   const meshRef = useRef<Mesh>(null);
   const groupRef = useRef<any>(null);
 
-  const { scaleMode, simulationTime } = useStore();
+  const { scaleMode, simulationTime, timeSpeed, isPaused } = useStore();
 
   // Load moon texture
   const texture = useLoader(TextureLoader, '/textures/moon.jpg');
@@ -46,10 +46,10 @@ export default function Moon({ planetPosition }: MoonProps) {
 
   // Rotate moon on its axis and update orbital position
   useFrame((state, delta) => {
-    if (meshRef.current) {
+    if (meshRef.current && !isPaused) {
       // Moon's rotation (tidally locked, so it rotates once per orbit)
       const rotationSpeed = 1 / (moonData.orbitalPeriod * 24 * 60);
-      meshRef.current.rotation.y += delta * rotationSpeed;
+      meshRef.current.rotation.y += delta * rotationSpeed * timeSpeed;
     }
 
     // Update moon position relative to Earth
@@ -65,9 +65,17 @@ export default function Moon({ planetPosition }: MoonProps) {
       <mesh ref={meshRef}>
         <sphereGeometry args={[moonSize, 32, 32]} />
         {texture ? (
-          <meshStandardMaterial map={texture} />
+          <meshStandardMaterial
+            map={texture}
+            roughness={0.9}
+            metalness={0}
+          />
         ) : (
-          <meshStandardMaterial color={moonData.color} />
+          <meshStandardMaterial
+            color={moonData.color}
+            roughness={0.9}
+            metalness={0}
+          />
         )}
       </mesh>
     </group>

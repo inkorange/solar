@@ -20,6 +20,60 @@
     color: var(--accent-primary);
   }
 
+  .searchContainer {
+    position: relative;
+    margin-bottom: 16px;
+
+    .searchInput {
+      width: 100%;
+      padding: 10px 32px 10px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: var(--foreground);
+      font-family: var(--font-geist-sans);
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s ease;
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &:focus {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--accent-primary);
+      }
+    }
+
+    .clearButton {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--foreground);
+      }
+    }
+  }
+
+  .noResults {
+    text-align: center;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+  }
+
   .planetList {
     list-style: none;
     padding: 0;

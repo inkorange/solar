@@ -19,7 +19,7 @@ export default function TravelInfoPanel() {
     journeyElapsedTime,
     totalDistance,
     cancelJourney,
-    completeJourney,
+    resetJourney,
   } = useStore();
 
   if (!destination || !origin || !selectedPropulsion) {
@@ -71,7 +71,7 @@ export default function TravelInfoPanel() {
 
         <button
           className={styles.continueButton}
-          onClick={() => completeJourney()}
+          onClick={() => resetJourney()}
         >
           Continue Exploring
         </button>

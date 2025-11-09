@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:api.le-systeme-solaire.net)",
+      "WebSearch",
+      "WebFetch(domain:ssd.jpl.nasa.gov)"
     ],
     "deny": [],
     "ask": []

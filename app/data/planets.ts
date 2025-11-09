@@ -23,6 +23,10 @@ export interface PlanetData {
   orbitalEccentricity: number; // 0 = perfect circle, closer to 1 = more elliptical
   orbitalInclination: number; // degrees
 
+  // J2000.0 orbital elements (for calculating real-time positions)
+  meanLongitudeJ2000: number; // degrees - Mean longitude at J2000.0 epoch (Jan 1, 2000, noon)
+  meanLongitudeRate: number; // degrees per century - Rate of change of mean longitude
+
   // Rotation
   rotationPeriod: number; // Earth days
   axialTilt: number; // degrees
@@ -56,6 +60,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 47.4,
     orbitalEccentricity: 0.206,
     orbitalInclination: 7.0,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 252.250,
+    meanLongitudeRate: 149472.674,
+
     rotationPeriod: 58.6,
     axialTilt: 0.034,
     atmosphere: ["Trace"],
@@ -81,6 +90,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 35.0,
     orbitalEccentricity: 0.007,
     orbitalInclination: 3.4,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 181.979,
+    meanLongitudeRate: 58517.815,
+
     rotationPeriod: -243, // Negative indicates retrograde rotation
     axialTilt: 177.4,
     atmosphere: ["CO2 (96.5%)", "N2 (3.5%)"],
@@ -106,6 +120,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 29.8,
     orbitalEccentricity: 0.017,
     orbitalInclination: 0.0,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 100.465,
+    meanLongitudeRate: 35999.372,
+
     rotationPeriod: 1.0,
     axialTilt: 23.4,
     atmosphere: ["N2 (78%)", "O2 (21%)", "Ar (0.9%)"],
@@ -131,6 +150,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 24.1,
     orbitalEccentricity: 0.094,
     orbitalInclination: 1.9,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: -4.553,
+    meanLongitudeRate: 19140.303,
+
     rotationPeriod: 1.03,
     axialTilt: 25.2,
     atmosphere: ["CO2 (95%)", "N2 (2.8%)", "Ar (2%)"],
@@ -156,6 +180,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 13.1,
     orbitalEccentricity: 0.049,
     orbitalInclination: 1.3,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 34.396,
+    meanLongitudeRate: 3034.746,
+
     rotationPeriod: 0.41,
     axialTilt: 3.1,
     atmosphere: ["H2 (90%)", "He (10%)"],
@@ -164,7 +193,7 @@ export const PLANETS: PlanetData[] = [
     ringData: {
       innerRadiusRatio: 1.75, // Main ring at 122,500 km
       outerRadiusRatio: 1.85,  // Outer edge at 129,000 km
-      opacity: 0.3, // Very faint rings
+      opacity: 0.05, // Very faint rings
     },
     facts: [
       "Largest planet in the solar system",
@@ -186,6 +215,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 9.7,
     orbitalEccentricity: 0.057,
     orbitalInclination: 2.5,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 49.954,
+    meanLongitudeRate: 1222.494,
+
     rotationPeriod: 0.45,
     axialTilt: 26.7,
     atmosphere: ["H2 (96%)", "He (3%)"],
@@ -217,6 +251,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 6.8,
     orbitalEccentricity: 0.046,
     orbitalInclination: 0.8,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 313.238,
+    meanLongitudeRate: 428.482,
+
     rotationPeriod: -0.72, // Retrograde rotation
     axialTilt: 97.8,
     atmosphere: ["H2 (83%)", "He (15%)", "CH4 (2%)"],
@@ -225,7 +264,7 @@ export const PLANETS: PlanetData[] = [
     ringData: {
       innerRadiusRatio: 1.50, // Zeta ring at 38,000 km
       outerRadiusRatio: 2.02,  // Epsilon ring outer at 51,149 km
-      opacity: 0.5, // Thin, dark rings
+      opacity: 0.05, // Thin, dark rings
     },
     facts: [
       "Rotates on its side (97.8° tilt)",
@@ -247,6 +286,11 @@ export const PLANETS: PlanetData[] = [
     orbitalSpeed: 5.4,
     orbitalEccentricity: 0.011,
     orbitalInclination: 1.8,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: -55.120,
+    meanLongitudeRate: 218.459,
+
     rotationPeriod: 0.67,
     axialTilt: 28.3,
     atmosphere: ["H2 (80%)", "He (19%)", "CH4 (1%)"],
@@ -255,7 +299,7 @@ export const PLANETS: PlanetData[] = [
     ringData: {
       innerRadiusRatio: 1.71, // Galle ring at 42,000 km
       outerRadiusRatio: 2.56,  // Adams ring at 63,000 km
-      opacity: 0.4, // Faint arcs/rings
+      opacity: 0.05, // Faint arcs/rings
     },
     facts: [
       "Farthest planet from the Sun",
@@ -274,6 +318,7 @@ export const SUN_DATA = {
   diameter: 1392700, // km
   mass: 333000, // relative to Earth
   surfaceTemp: 5778, // Kelvin
+  rotationPeriod: 25.05, // Earth days (at equator - Sun has differential rotation)
   facts: [
     "Contains 99.86% of the solar system's mass",
     "Core temperature is about 15 million degrees Celsius",
