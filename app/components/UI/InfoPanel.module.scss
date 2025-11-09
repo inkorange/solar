@@ -1,0 +1,196 @@
+.infoPanel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 360px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  color: var(--foreground);
+  z-index: 100;
+  animation: slideIn 0.3s ease;
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--accent-primary);
+    }
+
+    .closeButton {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--foreground);
+      }
+    }
+  }
+
+  .type {
+    font-size: 14px;
+    color: var(--accent-secondary);
+    margin-bottom: 20px;
+  }
+
+  .section {
+    margin-bottom: 24px;
+
+    h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 0 0 12px 0;
+      font-weight: 600;
+    }
+
+    .dataGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .dataItem {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      .label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.5);
+        margin-bottom: 4px;
+      }
+
+      .value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--foreground);
+      }
+    }
+
+    .atmosphereList {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .factsList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.8);
+
+        &:before {
+          content: '•';
+          color: var(--accent-primary);
+          font-weight: bold;
+          display: inline-block;
+          width: 1em;
+          margin-left: -1em;
+          position: relative;
+          left: -4px;
+        }
+      }
+    }
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .travelSection {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .travelButton {
+    width: 100%;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: var(--font-geist-sans);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(96, 165, 250, 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}

@@ -1,0 +1,99 @@
+.navigation {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 280px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  color: var(--foreground);
+  z-index: 100;
+
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: var(--accent-primary);
+  }
+
+  .planetList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      margin-bottom: 8px;
+    }
+  }
+
+  .planetButton {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--foreground);
+    font-family: var(--font-geist-sans);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-primary);
+      transform: translateX(4px);
+    }
+
+    &.selected {
+      background: rgba(96, 165, 250, 0.2);
+      border-color: var(--accent-primary);
+    }
+
+    .planetName {
+      font-weight: 500;
+    }
+
+    .planetType {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  .groupTitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 20px 0 12px 0;
+    font-weight: 600;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}

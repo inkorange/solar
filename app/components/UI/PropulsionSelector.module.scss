@@ -1,0 +1,315 @@
+.selector {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  padding: 32px;
+  color: var(--foreground);
+  z-index: 200;
+  animation: fadeInUp 0.3s ease;
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -40%);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .header {
+    margin-bottom: 24px;
+
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
+    }
+  }
+
+  .routeInfo {
+    background: rgba(96, 165, 250, 0.1);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .routeText {
+      font-size: 18px;
+      font-weight: 600;
+
+      span {
+        color: var(--accent-primary);
+      }
+    }
+
+    .distance {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      font-family: var(--font-geist-mono);
+    }
+  }
+
+  .propulsionGrid {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .propulsionCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+    }
+
+    &.selected {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+    }
+
+    .cardHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+
+      .left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .icon {
+          font-size: 32px;
+        }
+
+        .info {
+          h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+          }
+
+          .category {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+        }
+      }
+
+      .travelTime {
+        text-align: right;
+
+        .label {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .time {
+          font-size: 18px;
+          font-weight: 700;
+          color: var(--accent-primary);
+          font-family: var(--font-geist-mono);
+        }
+      }
+    }
+
+    .description {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+
+      .stat {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 8px 12px;
+        border-radius: 6px;
+
+        .statLabel {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .statValue {
+          font-size: 14px;
+          font-weight: 600;
+          font-family: var(--font-geist-mono);
+        }
+      }
+    }
+
+    .expandButton {
+      background: none;
+      border: none;
+      color: var(--accent-primary);
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px 0;
+      font-family: var(--font-geist-sans);
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .expandedContent {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+      h4 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.6);
+        margin: 0 0 8px 0;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 12px 0;
+
+        li {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.8);
+          padding: 4px 0;
+          padding-left: 16px;
+          position: relative;
+
+          &:before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+          }
+        }
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-geist-sans);
+    }
+
+    .confirmButton {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border: none;
+      color: white;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .cancelButton {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--foreground);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 199;
+  animation: fadeIn 0.3s ease;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
