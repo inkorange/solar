@@ -1,9 +1,15 @@
 'use client';
 
-import { useStore } from '@/app/store/useStore';
+import { useStore, CameraMode } from '@/app/store/useStore';
 import styles from './Controls.module.scss';
 
-const SPEED_OPTIONS = [1, 10, 100, 1000, 10000];
+const SPEED_OPTIONS = [1, 10, 1000, 10000, 100000];
+
+const CAMERA_MODES: { mode: CameraMode; label: string }[] = [
+  { mode: 'free', label: 'Free' },
+  { mode: 'follow-spaceship', label: 'Follow Ship' },
+  { mode: 'planet-focus', label: 'Planet' },
+];
 
 export default function Controls() {
   const {
@@ -15,6 +21,8 @@ export default function Controls() {
     toggleOrbits,
     showLabels,
     toggleLabels,
+    cameraMode,
+    setCameraMode,
   } = useStore();
 
   return (
@@ -43,6 +51,25 @@ export default function Controls() {
               onClick={() => setTimeSpeed(speed)}
             >
               {speed}x
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      {/* Camera modes */}
+      <div className={styles.controlGroup}>
+        <label>Camera</label>
+        <div className={styles.toggleGroup}>
+          {CAMERA_MODES.map(({ mode, label }) => (
+            <button
+              key={mode}
+              className={cameraMode === mode ? styles.active : ''}
+              onClick={() => setCameraMode(mode)}
+              title={`${label} camera mode`}
+            >
+              {label}
             </button>
           ))}
         </div>

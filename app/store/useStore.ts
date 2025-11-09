@@ -28,6 +28,7 @@ interface AppState {
   startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number) => void;
   updateJourneyProgress: (delta: number) => void;
   completeJourney: () => void;
+  resetJourney: () => void;
   cancelJourney: () => void;
 
   // Time controls
@@ -109,6 +110,16 @@ export const useStore = create<AppState>((set) => ({
     set({
       journeyStatus: 'arrived',
       journeyElapsedTime: 0,
+    }),
+  resetJourney: () =>
+    set({
+      journeyStatus: 'idle',
+      origin: null,
+      destination: null,
+      selectedPropulsion: null,
+      journeyStartTime: 0,
+      journeyElapsedTime: 0,
+      totalDistance: 0,
     }),
   cancelJourney: () =>
     set({

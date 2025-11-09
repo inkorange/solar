@@ -8,67 +8,66 @@ import { useStore } from '@/app/store/useStore';
 
 export default function Sun() {
   const sunRef = useRef<Mesh>(null);
-  const { scaleMode } = useStore();
+  const { scaleMode, timeSpeed, isPaused } = useStore();
 
   // Load Sun texture
-  const texture = SUN_DATA.texture ? useLoader(TextureLoader, SUN_DATA.texture) : null;
+  const texture = useLoader(TextureLoader, SUN_DATA.texture || '/textures/sun.jpg');
+  const hasTexture = Boolean(SUN_DATA.texture);
 
   // Calculate Sun size using same formula as planets (relative to Earth)
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
   const sunSize = (SUN_DATA.diameter / 12742) * scaleFactor.SIZE * 5;
 
-  // Gentle rotation
+  // Scientific rotation based on Sun's rotation period
   useFrame((state, delta) => {
-    if (sunRef.current) {
-      sunRef.current.rotation.y += delta * 0.05;
+    if (sunRef.current && !isPaused) {
+      const rotationSpeed = SUN_DATA.rotationPeriod > 0 ? 1 / (SUN_DATA.rotationPeriod * 24 * 60) : 0;
+      sunRef.current.rotation.y += delta * rotationSpeed * timeSpeed;
     }
   });
 
   return (
     <group position={[0, 0, 0]}>
-      {/* Main Sun sphere */}
+      {/* Main visible Sun sphere with emissive material for bloom effect */}
       <mesh ref={sunRef} position={[0, 0, 0]}>
         <sphereGeometry args={[sunSize, 64, 64]} />
-        {texture ? (
-          <meshBasicMaterial map={texture} />
+        {hasTexture ? (
+          <meshStandardMaterial
+            map={texture}
+            emissive="#ffaa00"
+            emissiveMap={texture}
+            emissiveIntensity={2.2}
+            toneMapped={false}
+          />
         ) : (
-          <meshBasicMaterial color={SUN_DATA.color} />
+          <meshStandardMaterial
+            color="#ffff00"
+            emissive="#ffaa00"
+            emissiveIntensity={5.0}
+            toneMapped={false}
+          />
         )}
       </mesh>
 
-      {/* Glow effect - multi-layer corona */}
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[sunSize * 1.06, 32, 32]} />
-        <meshBasicMaterial
-          color={SUN_DATA.color}
-          transparent
-          opacity={0.4}
+      {/* Single point light source representing the Sun */}
+      <group>
+        {/* Main sun light */}
+        <pointLight 
+          position={[0, 0, 0]} 
+          intensity={1.5} 
+          distance={0} 
+          decay={0} 
+          color="#ffffff"
+          castShadow
+          shadow-mapSize-width={4096}
+          shadow-mapSize-height={4096}
+          shadow-bias={-0.00001}
+          shadow-radius={1}
         />
-      </mesh>
-
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[sunSize * 1.16, 32, 32]} />
-        <meshBasicMaterial
-          color="#ffaa00"
-          transparent
-          opacity={0.2}
-        />
-      </mesh>
-
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[sunSize * 1.3, 32, 32]} />
-        <meshBasicMaterial
-          color="#ff8800"
-          transparent
-          opacity={0.1}
-        />
-      </mesh>
-
-      {/* Point light source - strong lighting from the Sun */}
-      <pointLight position={[0, 0, 0]} intensity={5} distance={2000} decay={0.3} color="#ffffff" />
-
-      {/* Additional ambient light for visibility */}
-      <ambientLight intensity={0.8} />
+      </group>
+      
+      {/* Very subtle ambient light to show dark sides of planets */}
+      <ambientLight intensity={0.05} color="#ffffff" />
     </group>
   );
 }
