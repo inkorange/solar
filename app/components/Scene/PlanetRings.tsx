@@ -22,8 +22,7 @@ export default function PlanetRings({
   // Load ring texture if provided
   const ringTexture = texture ? useLoader(TextureLoader, texture) : null;
 
-  // Use 0.1% opacity for non-textured rings, or the provided opacity, or default to 80% for textured rings
-  const finalOpacity = opacity ?? (ringTexture ? 0.8 : 0.001);
+  // Load ring texture if provided
 
   // Create custom ring geometry with proper UV mapping for circumferential texture
   const ringGeometry = useMemo(() => {
@@ -76,22 +75,38 @@ export default function PlanetRings({
   }, [innerRadius, outerRadius]);
 
   return (
-    <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]} geometry={ringGeometry}>
+    <mesh 
+      ref={ringRef} 
+      rotation={[Math.PI / 2, 0, 0]} 
+      geometry={ringGeometry}
+      receiveShadow
+    >
       {ringTexture ? (
-        <meshBasicMaterial
+        <meshStandardMaterial
           map={ringTexture}
           side={DoubleSide}
           transparent
-          opacity={finalOpacity}
+          opacity={opacity ?? 0.8}
           depthWrite={false}
+          alphaTest={0.01}
+          color="#ffffff"
+          emissive="#ffffff"
+          emissiveIntensity={0.1}
+          metalness={0.3}
+          roughness={0.4}
         />
       ) : (
-        <meshBasicMaterial
+        <meshStandardMaterial
           color="#c9a97a"
           side={DoubleSide}
           transparent
-          opacity={finalOpacity}
+          opacity={opacity ?? 0.8}
           depthWrite={false}
+          alphaTest={0.01}
+          emissive="#c9a97a"
+          emissiveIntensity={0.1}
+          metalness={0.3}
+          roughness={0.4}
         />
       )}
     </mesh>

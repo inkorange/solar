@@ -193,7 +193,7 @@ export const PLANETS: PlanetData[] = [
     ringData: {
       innerRadiusRatio: 1.75, // Main ring at 122,500 km
       outerRadiusRatio: 1.85,  // Outer edge at 129,000 km
-      opacity: 0.05, // Very faint rings
+      opacity: 0.1, // Very faint rings
     },
     facts: [
       "Largest planet in the solar system",

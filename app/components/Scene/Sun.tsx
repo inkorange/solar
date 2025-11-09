@@ -11,7 +11,8 @@ export default function Sun() {
   const { scaleMode, timeSpeed, isPaused } = useStore();
 
   // Load Sun texture
-  const texture = SUN_DATA.texture ? useLoader(TextureLoader, SUN_DATA.texture) : null;
+  const texture = useLoader(TextureLoader, SUN_DATA.texture || '/textures/sun.jpg');
+  const hasTexture = Boolean(SUN_DATA.texture);
 
   // Calculate Sun size using same formula as planets (relative to Earth)
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
@@ -27,32 +28,46 @@ export default function Sun() {
 
   return (
     <group position={[0, 0, 0]}>
-      {/* Main Sun sphere with emissive material for bloom effect */}
+      {/* Main visible Sun sphere with emissive material for bloom effect */}
       <mesh ref={sunRef} position={[0, 0, 0]}>
         <sphereGeometry args={[sunSize, 64, 64]} />
-        {texture ? (
+        {hasTexture ? (
           <meshStandardMaterial
             map={texture}
             emissive="#ffaa00"
             emissiveMap={texture}
-            emissiveIntensity={1.2}
+            emissiveIntensity={2.2}
             toneMapped={false}
           />
         ) : (
           <meshStandardMaterial
             color="#ffff00"
             emissive="#ffaa00"
-            emissiveIntensity={1.5}
+            emissiveIntensity={5.0}
             toneMapped={false}
           />
         )}
       </mesh>
 
-      {/* Point light source - strong lighting from the Sun */}
-      <pointLight position={[0, 0, 0]} intensity={8} distance={10000} decay={0.3} color="#ffeecc" />
-
-      {/* Reduced ambient light to create stronger shadows on dark side of planets */}
-      <ambientLight intensity={0.15} />
+      {/* Single point light source representing the Sun */}
+      <group>
+        {/* Main sun light */}
+        <pointLight 
+          position={[0, 0, 0]} 
+          intensity={1.5} 
+          distance={0} 
+          decay={0} 
+          color="#ffffff"
+          castShadow
+          shadow-mapSize-width={4096}
+          shadow-mapSize-height={4096}
+          shadow-bias={-0.00001}
+          shadow-radius={1}
+        />
+      </group>
+      
+      {/* Very subtle ambient light to show dark sides of planets */}
+      <ambientLight intensity={0.05} color="#ffffff" />
     </group>
   );
 }

@@ -63,6 +63,7 @@ export default function Planet({ data }: PlanetProps) {
         onClick={handleClick}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
+        castShadow
       >
         <sphereGeometry args={[planetSize, 32, 32]} />
         {texture ? (
@@ -95,7 +96,9 @@ export default function Planet({ data }: PlanetProps) {
         <Atmosphere
           radius={planetSize}
           color={data.color}
-          opacity={0.12}
+          opacity={data.type === 'Gas Giant' ? 0.25 : 
+                  data.type === 'Ice Giant' ? 0.2 :
+                  data.name === 'Venus' ? 0.3 : 0.15}
         />
       )}
 
