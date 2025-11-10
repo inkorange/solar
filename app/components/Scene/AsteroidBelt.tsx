@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Points, BufferGeometry, Float32BufferAttribute, PointsMaterial, Color, CanvasTexture } from 'three';
+import { Points, BufferGeometry, Float32BufferAttribute, Color, CanvasTexture } from 'three';
 import { ASTEROID_BELT_CONFIG } from '@/app/data/asteroids';
 import { SCALE_FACTORS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';

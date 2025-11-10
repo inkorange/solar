@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { useRef, useMemo, useEffect, Suspense } from 'react';
+import { useRef, useMemo, useEffect, Suspense, useState } from 'react';
 import { Vector3 } from 'three';
 
 // Minimal interface for OrbitControls methods/properties used in this file
@@ -144,6 +144,20 @@ function CameraController() {
 
       if (t >= 1) {
         anim.active = false;
+
+        // Initialize camera offset for planet-focus mode after animation completes
+        if (cameraMode === 'planet-focus' && focusedPlanetName) {
+          const planet = PLANETS.find(p => p.name === focusedPlanetName);
+          if (planet) {
+            const { scaleMode, simulationTime } = useStore.getState();
+            const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+            const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
+            const planetPosVec = new Vector3(planetPos.x, 0, planetPos.z);
+
+            // Set the camera offset based on final animated position
+            cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
+          }
+        }
       }
       return; // Skip camera mode updates during animation
     }
@@ -166,8 +180,8 @@ function CameraController() {
           const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
 
           // Position camera behind ship (opposite of Earth-to-ship direction)
-          const cameraDistance = 15; // Distance behind the ship
-          const cameraHeight = 5; // Height above the ship
+          const cameraDistance = 20; // Distance behind the ship
+          const cameraHeight = 8; // Height above the ship
           const initialCameraPos = shipPos.clone()
             .add(earthToShip.clone().multiplyScalar(-cameraDistance))
             .add(new Vector3(0, cameraHeight, 0));
@@ -201,10 +215,19 @@ function CameraController() {
         const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
         const planetPosVec = new Vector3(planetPos.x, 0, planetPos.z);
 
-        // Initialize offset on first frame
+        // Initialize offset on first frame with appropriate zoom based on planet size
         if (!cameraOffsetRef.current) {
-          cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
+          const planetSize = (planet.diameter / 12742) * scaleFactor.SIZE * 5;
+          const cameraDistance = Math.max(planetSize * 8, 15); // At least 8x planet radius, minimum 15 units
+          const cameraHeight = planetSize * 3;
+
+          // Position camera offset from planet
+          const initialCameraPos = planetPosVec.clone()
+            .add(new Vector3(cameraDistance, cameraHeight, cameraDistance));
+
+          camera.position.copy(initialCameraPos);
           controlsRef.current.target.copy(planetPosVec);
+          cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
         }
 
         // Calculate how much the planet has moved
@@ -278,9 +301,81 @@ function PlanetWithMoons({ planetData }: { planetData: typeof PLANETS[0] }) {
   );
 }
 
+function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
+  const [loadedCount, setLoadedCount] = useState(0);
+  const totalItems = useRef(0);
+  const hasCompleted = useRef(false);
+
+  useEffect(() => {
+    // Count total items to load (8 planets with textures)
+    totalItems.current = PLANETS.filter(p => p.texture).length;
+  }, []);
+
+  useFrame(() => {
+    // Check if all items are loaded and first frame has rendered
+    if (!hasCompleted.current && loadedCount >= totalItems.current && totalItems.current > 0) {
+      hasCompleted.current = true;
+      // Small delay to ensure first render is complete
+      setTimeout(() => onLoadComplete(), 100);
+    }
+  });
+
+  // Expose a way for planets to report loading
+  useEffect(() => {
+    const handleTextureLoad = () => {
+      setLoadedCount(prev => prev + 1);
+    };
+
+    // Listen for texture load events
+    window.addEventListener('planet-texture-loaded', handleTextureLoad);
+    return () => window.removeEventListener('planet-texture-loaded', handleTextureLoad);
+  }, []);
+
+  return null;
+}
+
 export default function SolarSystem() {
+  const [isLoading, setIsLoading] = useState(true);
+
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      {/* Loading indicator overlay */}
+      {isLoading && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            color: 'white',
+            fontFamily: 'var(--font-geist-sans)',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              width: '60px',
+              height: '60px',
+              border: '3px solid rgba(96, 165, 250, 0.2)',
+              borderTop: '3px solid #60a5fa',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 20px',
+            }}
+          />
+          <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading Solar System...</div>
+          <style>
+            {`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}
+          </style>
+        </div>
+      )}
+
       <Canvas
         camera={{
           position: [0, 50, 100],
@@ -293,6 +388,9 @@ export default function SolarSystem() {
       >
         {/* Scene updater component */}
         <SceneUpdater />
+
+        {/* Loading tracker */}
+        <LoadingTracker onLoadComplete={() => setIsLoading(false)} />
 
         <Suspense fallback={null}>
           {/* Stars background */}

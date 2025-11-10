@@ -7,7 +7,7 @@ import {
   PropulsionType,
   calculateTravelTime,
   formatDuration,
-  CONSTANTS,
+  // CONSTANTS,
 } from '@/app/data/propulsion';
 import { calculateInterceptCourse } from '@/app/lib/orbital-mechanics';
 import { SCALE_FACTORS, PLANETS, PlanetData } from '@/app/data/planets';
@@ -18,8 +18,8 @@ export default function PropulsionSelector() {
     journeyStatus,
     destination,
     origin,
-    setSelectedPropulsion,
-    setJourneyStatus,
+  // setSelectedPropulsion,
+  // setJourneyStatus,
     cancelJourney,
     startJourney,
     simulationTime,
@@ -33,16 +33,13 @@ export default function PropulsionSelector() {
     PLANETS.find(p => p.name === 'Earth') || origin
   );
 
-  if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) {
-    return null;
-  }
-
   // Calculate intercept courses for each propulsion system
   // This accounts for where the destination planet will be when the ship arrives
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
 
   const interceptCourses = useMemo(() => {
-    if (!selectedOrigin) return new Map();
+  if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) return new Map();
+  if (!selectedOrigin) return new Map();
 
     const courses = new Map<PropulsionType, ReturnType<typeof calculateInterceptCourse>>();
 
@@ -58,7 +55,12 @@ export default function PropulsionSelector() {
     });
 
     return courses;
-  }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE]);
+  }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE, journeyStatus, origin]);
+
+  // If not in propulsion selection mode or missing data, render nothing (hooks already executed above)
+  if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) {
+    return null;
+  }
 
   // Get the intercept course for the selected propulsion (for confirmation)
   const selectedCourse = selected ? interceptCourses.get(selected) : null;

@@ -23,6 +23,10 @@ export interface AsteroidData {
   orbitalEccentricity: number;
   orbitalInclination: number; // degrees
 
+  // J2000.0 orbital elements (for calculating real-time positions)
+  meanLongitudeJ2000: number; // degrees - Mean longitude at J2000.0 epoch
+  meanLongitudeRate: number; // degrees per century - Rate of change
+
   // Rotation
   rotationPeriod: number; // hours
 
@@ -43,6 +47,11 @@ export const ASTEROIDS: AsteroidData[] = [
     orbitalSpeed: 17.9,
     orbitalEccentricity: 0.076,
     orbitalInclination: 10.6,
+
+    // J2000.0 orbital elements (JPL data)
+    meanLongitudeJ2000: 291.43,
+    meanLongitudeRate: 7796.5,
+
     rotationPeriod: 9.07,
     facts: [
       "Largest object in the asteroid belt",
@@ -64,6 +73,11 @@ export const ASTEROIDS: AsteroidData[] = [
     orbitalSpeed: 19.3,
     orbitalEccentricity: 0.089,
     orbitalInclination: 7.1,
+
+    // J2000.0 orbital elements (JPL data)
+    meanLongitudeJ2000: 307.54,
+    meanLongitudeRate: 9895.6,
+
     rotationPeriod: 5.34,
     facts: [
       "Second largest asteroid in the asteroid belt",
@@ -85,6 +99,11 @@ export const ASTEROIDS: AsteroidData[] = [
     orbitalSpeed: 17.7,
     orbitalEccentricity: 0.231,
     orbitalInclination: 34.8,
+
+    // J2000.0 orbital elements (JPL data)
+    meanLongitudeJ2000: 310.47,
+    meanLongitudeRate: 7763.5,
+
     rotationPeriod: 7.81,
     facts: [
       "Third largest asteroid in the asteroid belt",

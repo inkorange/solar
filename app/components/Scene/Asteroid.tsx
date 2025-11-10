@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 import { AsteroidData } from '@/app/data/asteroids';
 import { Group } from 'three';
+import { PlanetData } from '@/app/data/planets';
 import { SCALE_FACTORS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import { Html } from '@react-three/drei';
@@ -19,7 +20,7 @@ export default function Asteroid({ data }: AsteroidProps) {
   const groupRef = useRef<Group | null>(null);
   const [hovered, setHovered] = useState(false);
 
-  const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime, timeSpeed, isPaused } = useStore();
+  const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime, timeSpeed, isPaused, journeyStatus, showWelcome } = useStore();
   const isSelected = selectedPlanet?.name === data.name;
 
   // Calculate scaled values based on scale mode
@@ -35,14 +36,29 @@ export default function Asteroid({ data }: AsteroidProps) {
   const orbitalPosition = useMemo(() => {
     // Build a minimal PlanetData object to reuse orbital calculation
     // Only supply the fields required by the orbit calculation
-    const asteroidAsPlanet: { distanceFromSun: number; orbitalPeriod: number; orbitalEccentricity: number; orbitalInclination: number } = {
+    const asteroidAsPlanet: PlanetData = {
+      name: data.name,
+      type: 'Asteroid',
+      color: data.color || '#888888',
+      diameter: data.diameter || 1,
+      mass: data.mass || 0.0001,
+      gravity: data.gravity || 0,
       distanceFromSun: data.distanceFromSun,
       orbitalPeriod: data.orbitalPeriod * 365.25,
+      orbitalSpeed: data.orbitalSpeed || 0,
       orbitalEccentricity: data.orbitalEccentricity || 0,
       orbitalInclination: data.orbitalInclination || 0,
+      meanLongitudeJ2000: data.meanLongitudeJ2000,
+      meanLongitudeRate: data.meanLongitudeRate,
+      rotationPeriod: data.rotationPeriod || 0,
+      axialTilt: 0,
+      atmosphere: [],
+      moons: 0,
+      hasRings: false,
+      facts: [],
     };
 
-    return calculateEllipticalOrbitPosition(simulationTime, asteroidAsPlanet as any, scaleFactor.DISTANCE);
+    return calculateEllipticalOrbitPosition(simulationTime, asteroidAsPlanet, scaleFactor.DISTANCE);
   }, [simulationTime, data, scaleFactor.DISTANCE]);
 
   // Rotate asteroid on its axis
@@ -93,7 +109,7 @@ export default function Asteroid({ data }: AsteroidProps) {
       )}
 
       {/* Label */}
-      {showLabels && (
+      {showLabels && !showWelcome && journeyStatus !== 'selecting-propulsion' && (
         <Html
           position={[0, asteroidSize * 1.8, 0]}
           center
