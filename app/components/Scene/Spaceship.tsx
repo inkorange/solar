@@ -30,9 +30,20 @@ export default function Spaceship() {
 
   // Calculate current position during journey
   const position = useMemo(() => {
+    const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+
+    // If we've arrived at a destination, stay at that planet's current position
+    if (journeyStatus === 'arrived' && destination) {
+      const destPosData = calculateEllipticalOrbitPosition(
+        simulationTime,
+        destination,
+        scaleFactor.DISTANCE
+      );
+      return new Vector3(destPosData.x, 0, destPosData.z);
+    }
+
+    // If not traveling and no arrival state, default to Earth orbit
     if (journeyStatus !== 'traveling' || !origin || !destination || !selectedPropulsion || !destinationPositionAtArrival) {
-      // Default position near Earth
-      const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
       const earthData = PLANETS.find(p => p.name === 'Earth') || PLANETS[2];
       const orbitRadius = earthData.distanceFromSun * scaleFactor.DISTANCE;
       const orbitalPeriodSeconds = earthData.orbitalPeriod * 24 * 60 * 60;
@@ -44,8 +55,6 @@ export default function Spaceship() {
         Math.sin(angle) * orbitRadius + 5
       );
     }
-
-    const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
 
     // Origin position at journey start time (departure point)
     const originPosData = calculateEllipticalOrbitPosition(
@@ -75,7 +84,7 @@ export default function Spaceship() {
 
   // Update spaceship position and rotation
   useFrame(() => {
-    if (groupRef.current) {
+    if (groupRef.current && journeyStatus === 'traveling') {
       // Calculate direction of travel
       if (previousPositionRef.current) {
         const direction = new Vector3()
@@ -103,6 +112,11 @@ export default function Spaceship() {
       setSpaceshipPosition([position.x, position.y, position.z]);
     }
   });
+
+  // Only render spaceship when actively traveling
+  if (journeyStatus !== 'traveling') {
+    return null;
+  }
 
   return (
     <group ref={groupRef}>

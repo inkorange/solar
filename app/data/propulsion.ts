@@ -10,6 +10,7 @@ export type PropulsionType =
   | 'solar-sail'
   | 'nuclear-thermal'
   | 'antimatter'
+  | 'light-speed'
   | 'warp-drive';
 
 export interface PropulsionData {
@@ -197,6 +198,39 @@ export const PROPULSION_SYSTEMS: PropulsionData[] = [
     icon: '💥'
   },
   {
+    id: 'light-speed',
+    name: 'Light Speed',
+    displayName: 'Photonic Propulsion (Light Speed)',
+    category: 'Theoretical',
+    maxSpeed: 299792.458, // km/s (exactly the speed of light)
+    acceleration: 0, // Assumed instantaneous for theoretical purposes
+    description: 'Theoretical propulsion achieving exactly the speed of light (c). The cosmic speed limit set by Einstein\'s relativity.',
+    technicalDetails: 'Travels at constant velocity of 299,792.458 km/s (186,282 miles/s). At this speed, time dilation becomes infinite for outside observers. Requires infinite energy for objects with mass according to special relativity. Only massless particles (photons) naturally travel at c.',
+    realWorldExamples: [
+      'Photons (light particles) travel at c naturally',
+      'Laser beam propulsion concepts (Breakthrough Starshot)',
+      'Photon rockets (theoretical - using pure light for thrust)',
+      'Beamed energy propulsion studies'
+    ],
+    advantages: [
+      'Absolute maximum speed possible (cosmic speed limit)',
+      'Cross solar system in hours instead of months/years',
+      'Earth to Mars in ~3-22 minutes (depending on distance)',
+      'Pluto reachable in ~5.5 hours',
+      'Time dilation effects (time slows for travelers)'
+    ],
+    limitations: [
+      'Requires infinite energy for massive objects (E=mc²)',
+      'Violates known physics for anything with mass',
+      'Extreme time dilation (twin paradox)',
+      'No known method to accelerate mass to light speed',
+      'Would require perfect conversion of mass to energy',
+      'Relativistic effects make navigation complex'
+    ],
+    color: '#f39c12',
+    icon: '💫'
+  },
+  {
     id: 'warp-drive',
     name: 'Warp Drive',
     displayName: 'Alcubierre Warp Drive',
@@ -241,6 +275,12 @@ export function calculateTravelTime(distanceKm: number, propulsion: PropulsionDa
   if (propulsion.id === 'warp-drive') {
     // Add small delay for drama (1 second per AU for "warp calculation")
     return (distanceKm / CONSTANTS.AU_TO_KM) * 1;
+  }
+
+  // Special case for light speed - constant velocity at c
+  if (propulsion.id === 'light-speed') {
+    // Time = distance / speed (speed of light)
+    return distanceKm / CONSTANTS.SPEED_OF_LIGHT;
   }
 
   const { maxSpeed, acceleration } = propulsion;
@@ -296,6 +336,10 @@ export function calculateCurrentSpeed(
 ): number {
   if (propulsion.id === 'warp-drive') {
     return propulsion.maxSpeed; // Instantaneous
+  }
+
+  if (propulsion.id === 'light-speed') {
+    return CONSTANTS.SPEED_OF_LIGHT; // Constant at c
   }
 
   const { maxSpeed, acceleration } = propulsion;
