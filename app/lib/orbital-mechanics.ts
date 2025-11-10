@@ -118,7 +118,6 @@ export function calculateEllipticalOrbitPosition(
 
   // Calculate real-world position (mean longitude) based on reference date
   // This ensures planets start at their actual positions when simulation time = 0
-  // Reference date updates daily to reflect current real-world positions
   const currentMeanLongitude = calculateCurrentMeanLongitude(planet, REFERENCE_DATE);
   const initialPhaseRadians = (currentMeanLongitude * Math.PI) / 180;
 
@@ -151,9 +150,8 @@ export function calculateEllipticalOrbitPosition(
   // Position in orbital plane
   const scaledDistance = distance * scaleFactor;
 
-  // Convert to 3D coordinates (in the ecliptic plane)
-  // For visual clarity, we're keeping orbits in the same plane
-  // (inclination effects are subtle and can make visualization confusing)
+  // Convert to 3D coordinates with sun at origin (one focus of ellipse)
+  // The true anomaly already includes the initial phase through the mean anomaly calculation
   const x = scaledDistance * Math.cos(trueAnomaly);
   const z = scaledDistance * Math.sin(trueAnomaly);
 
@@ -211,4 +209,73 @@ export function calculateDistanceBetweenPlanets(
   const AU_TO_KM = 149597870.7;
 
   return distanceInAU * AU_TO_KM;
+}
+
+/**
+ * Calculate the optimal intercept for a journey between two planets
+ * Takes into account that the destination planet will move during the journey
+ * @param origin Origin planet
+ * @param destination Destination planet
+ * @param currentTime Current simulation time in seconds
+ * @param scaleFactor Scale multiplier for visualization
+ * @param travelTimeCalculator Function that calculates travel time given distance in km
+ * @returns Object with distance, arrivalTime, and destination position at arrival
+ */
+export function calculateInterceptCourse(
+  origin: PlanetData,
+  destination: PlanetData,
+  currentTime: number,
+  scaleFactor: number,
+  travelTimeCalculator: (distanceKm: number) => number
+): {
+  distance: number;
+  arrivalTime: number;
+  destinationPositionAtArrival: { x: number; z: number };
+  originPositionAtDeparture: { x: number; z: number };
+} {
+  const AU_TO_KM = 149597870.7;
+
+  // Get origin position at current time (departure time)
+  const originPos = calculateEllipticalOrbitPosition(currentTime, origin, scaleFactor);
+
+  // Iteratively calculate where the destination will be when we arrive
+  let arrivalTime = currentTime;
+  let distance = 0;
+  let destinationPos = { x: 0, z: 0 };
+
+  // Iterate to convergence (usually converges in 3-5 iterations)
+  for (let iteration = 0; iteration < 10; iteration++) {
+    // Calculate where destination will be at the estimated arrival time
+    destinationPos = calculateEllipticalOrbitPosition(arrivalTime, destination, scaleFactor);
+
+    // Calculate distance from origin (at departure) to destination (at arrival)
+    const dx = destinationPos.x - originPos.x;
+    const dz = destinationPos.z - originPos.z;
+    const distanceInScaledUnits = Math.sqrt(dx * dx + dz * dz);
+
+    // Convert to km
+    const distanceInAU = distanceInScaledUnits / scaleFactor;
+    const newDistance = distanceInAU * AU_TO_KM;
+
+    // Calculate travel time for this distance
+    const travelTime = travelTimeCalculator(newDistance);
+    const newArrivalTime = currentTime + travelTime;
+
+    // Check for convergence (distance changed by less than 0.1%)
+    if (iteration > 0 && Math.abs(newDistance - distance) / distance < 0.001) {
+      distance = newDistance;
+      arrivalTime = newArrivalTime;
+      break;
+    }
+
+    distance = newDistance;
+    arrivalTime = newArrivalTime;
+  }
+
+  return {
+    distance,
+    arrivalTime,
+    destinationPositionAtArrival: destinationPos,
+    originPositionAtDeparture: originPos,
+  };
 }

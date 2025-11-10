@@ -19,7 +19,11 @@ import Orbit from './Orbit';
 import Stars from './Stars';
 import Spaceship from './Spaceship';
 import Moon from './Moon';
+import Asteroid from './Asteroid';
+import AsteroidBelt from './AsteroidBelt';
 import { PLANETS, SCALE_FACTORS } from '@/app/data/planets';
+import { getMoonsForPlanet } from '@/app/data/moons';
+import { ASTEROIDS } from '@/app/data/asteroids';
 import { useStore } from '@/app/store/useStore';
 import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
 import { calculateTravelTime, getPropulsionById } from '@/app/data/propulsion';
@@ -64,8 +68,8 @@ function CameraController() {
   // Track last target to prevent re-animation
   const lastTargetRef = useRef<string>('');
 
-  // Store camera offset when planet-focus mode is activated
-  const cameraOffsetRef = useRef<{ position: Vector3; distance: number } | null>(null);
+  // Store camera offset when planet-focus or follow-spaceship mode is activated
+  const cameraOffsetRef = useRef<Vector3 | null>(null);
 
   // Reset camera offset when mode changes
   useEffect(() => {
@@ -147,7 +151,46 @@ function CameraController() {
     // Handle camera modes
     if (cameraMode === 'follow-spaceship') {
       const shipPos = new Vector3(spaceshipPosition[0], spaceshipPosition[1], spaceshipPosition[2]);
+
+      // Initialize camera position behind the ship from Earth's perspective on first entry
+      if (!cameraOffsetRef.current) {
+        // Get Earth's position
+        const earth = PLANETS.find(p => p.name === 'Earth');
+        if (earth) {
+          const { scaleMode, simulationTime } = useStore.getState();
+          const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+          const earthPos = calculateEllipticalOrbitPosition(simulationTime, earth, scaleFactor.DISTANCE);
+          const earthPosVec = new Vector3(earthPos.x, 0, earthPos.z);
+
+          // Calculate direction from Earth to ship
+          const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
+
+          // Position camera behind ship (opposite of Earth-to-ship direction)
+          const cameraDistance = 15; // Distance behind the ship
+          const cameraHeight = 5; // Height above the ship
+          const initialCameraPos = shipPos.clone()
+            .add(earthToShip.clone().multiplyScalar(-cameraDistance))
+            .add(new Vector3(0, cameraHeight, 0));
+
+          camera.position.copy(initialCameraPos);
+          controlsRef.current.target.copy(shipPos);
+
+          // Store the initial offset
+          cameraOffsetRef.current = camera.position.clone().sub(shipPos);
+        }
+      }
+
+      // Calculate how much the ship has moved
+      const previousTarget = controlsRef.current.target.clone();
+      const shipMovement = shipPos.clone().sub(previousTarget);
+
+      // Move both camera and target by the same amount to maintain relative position
+      camera.position.add(shipMovement);
       controlsRef.current.target.copy(shipPos);
+
+      // Update the stored offset based on current camera position (accounts for user rotation/zoom)
+      cameraOffsetRef.current = camera.position.clone().sub(shipPos);
+
       controlsRef.current.update();
     } else if (cameraMode === 'planet-focus' && focusedPlanetName) {
       // Planet focus mode - camera follows planet while maintaining rotation ability
@@ -158,16 +201,28 @@ function CameraController() {
         const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
         const planetPosVec = new Vector3(planetPos.x, 0, planetPos.z);
 
-        // Just update the orbit controls target to the planet's position
-        // This keeps the planet as the center of rotation while letting OrbitControls handle camera movement
+        // Initialize offset on first frame
+        if (!cameraOffsetRef.current) {
+          cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
+          controlsRef.current.target.copy(planetPosVec);
+        }
+
+        // Calculate how much the planet has moved
+        const previousTarget = controlsRef.current.target.clone();
+        const planetMovement = planetPosVec.clone().sub(previousTarget);
+
+        // Move both camera and target by the same amount to maintain relative position
+        camera.position.add(planetMovement);
         controlsRef.current.target.copy(planetPosVec);
-        
-        // Let OrbitControls update handle the camera position
+
+        // Update the stored offset based on current camera position (accounts for user rotation/zoom)
+        cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
+
         controlsRef.current.update();
       }
     } else {
       // 'free' mode doesn't need special handling - orbit controls work normally
-      cameraOffsetRef.current = null; // Clear planet offset when not in planet-focus mode
+      cameraOffsetRef.current = null; // Clear offset when not in planet-focus or follow-spaceship mode
     }
   });
 
@@ -193,30 +248,32 @@ function CameraController() {
   );
 }
 
-// Component to track Earth's position and render the Moon
-function EarthWithMoon() {
-  const earthData = PLANETS.find(p => p.name === 'Earth')!;
+// Component to render a planet with its moons
+function PlanetWithMoons({ planetData }: { planetData: typeof PLANETS[0] }) {
   const { scaleMode, simulationTime } = useStore();
 
-  // Calculate Earth's position (same logic as Planet component)
-  const earthPosition = useMemo(() => {
-    const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-    const orbitRadius = earthData.distanceFromSun * scaleFactor.DISTANCE;
-    const orbitalPeriodSeconds = earthData.orbitalPeriod * 24 * 60 * 60;
-    const angle = (simulationTime / orbitalPeriodSeconds) * Math.PI * 2;
+  // Get moons for this planet
+  const moons = getMoonsForPlanet(planetData.name);
 
-    return new Vector3(
-      Math.cos(angle) * orbitRadius,
-      0,
-      Math.sin(angle) * orbitRadius
+  // Calculate planet's position using elliptical orbit
+  const planetPosition = useMemo(() => {
+    const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+    const position = calculateEllipticalOrbitPosition(
+      simulationTime,
+      planetData,
+      scaleFactor.DISTANCE
     );
-  }, [simulationTime, scaleMode, earthData.distanceFromSun, earthData.orbitalPeriod]);
+
+    return new Vector3(position.x, 0, position.z);
+  }, [simulationTime, scaleMode, planetData]);
 
   return (
     <>
-      <Orbit planetData={earthData} />
-      <Planet data={earthData} />
-      <Moon planetPosition={earthPosition} />
+      <Orbit planetData={planetData} />
+      <Planet data={planetData} />
+      {moons.map((moon) => (
+        <Moon key={moon.name} planetPosition={planetPosition} moonData={moon} />
+      ))}
     </>
   );
 }
@@ -244,18 +301,18 @@ export default function SolarSystem() {
           {/* Sun at the center */}
           <Sun />
 
-          {/* All planets with their orbits - special handling for Earth */}
-          {PLANETS.map((planet) => {
-            if (planet.name === 'Earth') {
-              return <EarthWithMoon key={planet.name} />;
-            }
-            return (
-              <group key={planet.name}>
-                <Orbit planetData={planet} />
-                <Planet data={planet} />
-              </group>
-            );
-          })}
+          {/* All planets with their orbits and moons */}
+          {PLANETS.map((planet) => (
+            <PlanetWithMoons key={planet.name} planetData={planet} />
+          ))}
+
+          {/* Asteroid Belt visualization */}
+          <AsteroidBelt />
+
+          {/* Major asteroids (Ceres, Vesta, Pallas) */}
+          {ASTEROIDS.map((asteroid) => (
+            <Asteroid key={asteroid.name} data={asteroid} />
+          ))}
 
           {/* Spaceship */}
           <Spaceship />

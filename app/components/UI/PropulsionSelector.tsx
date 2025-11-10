@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStore } from '@/app/store/useStore';
 import {
   PROPULSION_SYSTEMS,
@@ -9,6 +9,8 @@ import {
   formatDuration,
   CONSTANTS,
 } from '@/app/data/propulsion';
+import { calculateInterceptCourse } from '@/app/lib/orbital-mechanics';
+import { SCALE_FACTORS, PLANETS, PlanetData } from '@/app/data/planets';
 import styles from './PropulsionSelector.module.scss';
 
 export default function PropulsionSelector() {
@@ -20,18 +22,46 @@ export default function PropulsionSelector() {
     setJourneyStatus,
     cancelJourney,
     startJourney,
+    simulationTime,
+    scaleMode,
+    setOrigin,
   } = useStore();
 
   const [selected, setSelected] = useState<PropulsionType | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<PropulsionType>>(new Set());
+  const [selectedOrigin, setSelectedOrigin] = useState<PlanetData | null>(
+    PLANETS.find(p => p.name === 'Earth') || origin
+  );
 
   if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) {
     return null;
   }
 
-  // Calculate distance between origin and destination
-  // For simplicity, using straight-line distance (in reality, would need to account for orbits)
-  const distance = Math.abs(destination.distanceFromSun - origin.distanceFromSun) * CONSTANTS.AU_TO_KM;
+  // Calculate intercept courses for each propulsion system
+  // This accounts for where the destination planet will be when the ship arrives
+  const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+
+  const interceptCourses = useMemo(() => {
+    if (!selectedOrigin) return new Map();
+
+    const courses = new Map<PropulsionType, ReturnType<typeof calculateInterceptCourse>>();
+
+    PROPULSION_SYSTEMS.forEach((propulsion) => {
+      const course = calculateInterceptCourse(
+        selectedOrigin,
+        destination,
+        simulationTime,
+        scaleFactor.DISTANCE,
+        (distanceKm) => calculateTravelTime(distanceKm, propulsion)
+      );
+      courses.set(propulsion.id, course);
+    });
+
+    return courses;
+  }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE]);
+
+  // Get the intercept course for the selected propulsion (for confirmation)
+  const selectedCourse = selected ? interceptCourses.get(selected) : null;
 
   const handleSelect = (propulsionId: PropulsionType) => {
     setSelected(propulsionId);
@@ -48,9 +78,19 @@ export default function PropulsionSelector() {
   };
 
   const handleConfirm = () => {
-    if (selected && origin && destination) {
-      // Start the journey with proper parameters
-      startJourney(origin, destination, selected, distance);
+    if (selected && selectedOrigin && destination && selectedCourse) {
+      // Update the origin in the store if it was changed
+      setOrigin(selectedOrigin);
+
+      // Start the journey with intercept course data
+      startJourney(
+        selectedOrigin,
+        destination,
+        selected,
+        selectedCourse.distance,
+        selectedCourse.arrivalTime,
+        selectedCourse.destinationPositionAtArrival
+      );
     }
   };
 
@@ -66,22 +106,46 @@ export default function PropulsionSelector() {
           <div className={styles.header}>
             <h2>Choose Your Propulsion System</h2>
             <p className={styles.subtitle}>
-              Select how you'd like to travel through the solar system
+              Select your starting point and propulsion method
             </p>
+          </div>
+
+          {/* Origin planet selector */}
+          <div className={styles.originSelector}>
+            <label className={styles.originLabel}>Starting from:</label>
+            <select
+              className={styles.originSelect}
+              value={selectedOrigin?.name || ''}
+              onChange={(e) => {
+                const planet = PLANETS.find(p => p.name === e.target.value);
+                if (planet) {
+                  setSelectedOrigin(planet);
+                }
+              }}
+            >
+              {PLANETS.map((planet) => (
+                <option key={planet.name} value={planet.name}>
+                  {planet.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className={styles.routeInfo}>
             <div className={styles.routeText}>
-              <span>{origin.name}</span> → <span>{destination.name}</span>
+              <span>{selectedOrigin?.name}</span> → <span>{destination.name}</span>
             </div>
             <div className={styles.distance}>
-              {(distance / 1000000).toFixed(1)} million km
+              Intercept course calculated
             </div>
           </div>
 
           <div className={styles.propulsionGrid}>
             {PROPULSION_SYSTEMS.map((propulsion) => {
-              const travelTime = calculateTravelTime(distance, propulsion);
+              const course = interceptCourses.get(propulsion.id);
+              if (!course) return null;
+
+              const travelTime = calculateTravelTime(course.distance, propulsion);
               const isSelected = selected === propulsion.id;
               const isExpanded = expandedCards.has(propulsion.id);
 

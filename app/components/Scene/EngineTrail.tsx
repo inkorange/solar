@@ -1,109 +1,193 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Points, BufferGeometry, PointsMaterial, BufferAttribute } from 'three';
+import { Points, BufferGeometry, Color } from 'three';
 import { PropulsionType } from '@/app/data/propulsion';
+import { useStore } from '@/app/store/useStore';
 
 interface EngineTrailProps {
   propulsion: PropulsionType | null;
   isActive: boolean;
 }
 
+const PARTICLE_COUNT = 350;
+const PARTICLE_LIFETIME = 1.0; // seconds
+
 export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) {
   const pointsRef = useRef<Points>(null);
-  const particlesRef = useRef<Float32Array | null>(null);
+  const particleDataRef = useRef<{
+    velocities: Float32Array;
+    ages: Float32Array;
+  } | null>(null);
+
+  const { timeSpeed } = useStore();
 
   // Configure particle system based on propulsion type
   const particleConfig = useMemo(() => {
     if (!propulsion) {
-      return { count: 0, color: '#ffffff', size: 0.1, speed: 0 };
+      return { size: 0.15, speed: 1.5 };
     }
 
     switch (propulsion) {
       case 'chemical-rocket':
-        return { count: 200, color: '#ff6b35', size: 0.3, speed: 2 };
+        return { size: 0.2, speed: 4.0 };
       case 'ion-thruster':
-        return { count: 100, color: '#4ecdc4', size: 0.15, speed: 0.5 };
+        return { size: 0.12, speed: 3.0 };
       case 'solar-sail':
-        return { count: 0, color: '#f4d03f', size: 0.1, speed: 0 }; // No visible exhaust
+        return { size: 0, speed: 0 }; // No visible exhaust
       case 'nuclear-thermal':
-        return { count: 150, color: '#9b59b6', size: 0.25, speed: 1.5 };
+        return { size: 0.18, speed: 4.0 };
       case 'antimatter':
-        return { count: 300, color: '#e74c3c', size: 0.4, speed: 3 };
+        return { size: 0.25, speed: 4.0 };
       case 'warp-drive':
-        return { count: 400, color: '#3498db', size: 0.2, speed: 5 };
+        return { size: 0.15, speed: 4.0 };
       default:
-        return { count: 100, color: '#ffffff', size: 0.2, speed: 1 };
+        return { size: 0.15, speed: 3.0 };
     }
   }, [propulsion]);
 
   // Generate initial particles
-  const particles = useMemo(() => {
-    if (!isActive || particleConfig.count === 0) return null;
-
-    const positions = new Float32Array(particleConfig.count * 3);
-    const velocities = new Float32Array(particleConfig.count * 3);
-
-    for (let i = 0; i < particleConfig.count; i++) {
-      // Start at engine position
-      positions[i * 3] = -0.6 + Math.random() * 0.2; // x (behind engine)
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 0.3; // y
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 0.3; // z
-
-      // Move backwards (exhaust direction)
-      velocities[i * 3] = -particleConfig.speed * (0.5 + Math.random() * 0.5);
-      velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.5;
-      velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
+  const { positions, colors, velocities, ages } = useMemo(() => {
+    if (!isActive || propulsion === 'solar-sail') {
+      return { positions: null, colors: null };
     }
 
-    particlesRef.current = velocities;
-    return positions;
-  }, [isActive, particleConfig]);
+    const positions = new Float32Array(PARTICLE_COUNT * 3);
+    const colors = new Float32Array(PARTICLE_COUNT * 3);
+    const velocities = new Float32Array(PARTICLE_COUNT * 3);
+    const ages = new Float32Array(PARTICLE_COUNT);
+
+    // Deterministic pseudo-random generator based on index
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed * 9301 + 49297) * 233280.0;
+      return x - Math.floor(x);
+    };
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const r1 = seededRandom(i * 4 + 1);
+      const r2 = seededRandom(i * 4 + 2);
+      const r3 = seededRandom(i * 4 + 3);
+      const r4 = seededRandom(i * 4 + 4);
+
+      // Start at engine position with tighter spread
+      positions[i * 3] = -0.85 + r1 * 0.1; // x (at engine)
+      positions[i * 3 + 1] = (r2 - 0.5) * 0.15; // y (tighter)
+      positions[i * 3 + 2] = (r3 - 0.5) * 0.15; // z (tighter)
+
+      // Random age for staggered start
+      ages[i] = r4 * PARTICLE_LIFETIME;
+
+      // Initial white color
+      colors[i * 3] = 1.0;     // r
+      colors[i * 3 + 1] = 1.0; // g
+      colors[i * 3 + 2] = 1.0; // b
+
+      // Move backwards (exhaust direction) with minimal spread
+      const spreadAngle = (r2 - 0.5) * 0.2; // Minimal spread angle
+      const baseSpeed = particleConfig.speed * (0.8 + r3 * 0.4);
+      velocities[i * 3] = -baseSpeed;
+      velocities[i * 3 + 1] = Math.sin(spreadAngle) * baseSpeed * 0.03;
+      velocities[i * 3 + 2] = Math.cos(spreadAngle) * baseSpeed * 0.03;
+    }
+
+    return { positions, colors, velocities, ages };
+  }, [isActive, propulsion, particleConfig.speed]);
+
+  // Store particle arrays in ref after initial creation (outside render)
+  useEffect(() => {
+    if (positions && colors && velocities && ages) {
+      particleDataRef.current = { velocities, ages };
+    }
+  }, [positions, colors, velocities, ages]);
 
   // Animate particles
   useFrame((state, delta) => {
-    if (!pointsRef.current || !particles || !particlesRef.current) return;
+    if (!pointsRef.current || !positions || !colors || !particleDataRef.current) return;
 
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
-    const velocities = particlesRef.current;
+    const posArray = pointsRef.current.geometry.attributes.position.array as Float32Array;
+    const colorArray = pointsRef.current.geometry.attributes.color.array as Float32Array;
+    const { velocities, ages } = particleDataRef.current;
 
-    for (let i = 0; i < particleConfig.count; i++) {
-      // Update positions based on velocity
-      positions[i * 3] += velocities[i * 3] * delta;
-      positions[i * 3 + 1] += velocities[i * 3 + 1] * delta;
-      positions[i * 3 + 2] += velocities[i * 3 + 2] * delta;
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      // Update age, scaled by timeSpeed for consistent animation
+      ages[i] += delta * 1;
 
-      // Reset particles that go too far behind
-      if (positions[i * 3] < -5) {
-        positions[i * 3] = -0.6 + Math.random() * 0.2;
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 0.3;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
+      // Reset particle if it's too old
+      if (ages[i] > PARTICLE_LIFETIME) {
+        ages[i] = 0;
+        posArray[i * 3] = -0.85 + Math.random() * 0.1;
+        posArray[i * 3 + 1] = (Math.random() - 0.5) * 0.15;
+        posArray[i * 3 + 2] = (Math.random() - 0.5) * 0.15;
+      } else {
+        // Update position based on velocity, scaled by timeSpeed
+        posArray[i * 3] += velocities[i * 3] * delta * 1;
+        posArray[i * 3 + 1] += velocities[i * 3 + 1] * delta * 1;
+        posArray[i * 3 + 2] += velocities[i * 3 + 2] * delta * 1;
+      }
+
+      // Update color based on age (white → blue → orange → red → fade)
+      const lifeProgress = ages[i] / PARTICLE_LIFETIME;
+
+      if (lifeProgress < 0.1) {
+        // Stage 1: White (1,1,1) → Blue (0.2,0.4,1.0) - quick transition
+        const t = lifeProgress / 0.1;
+        colorArray[i * 3] = 1.0 - (0.8 * t);      // r: 1 → 0.2
+        colorArray[i * 3 + 1] = 1.0 - (0.6 * t);  // g: 1 → 0.4
+        colorArray[i * 3 + 2] = 1.0;              // b: stays 1
+      } else if (lifeProgress < 0.3) {
+        // Stage 2: Blue (0.2,0.4,1.0) → Orange (1.0,0.5,0.0)
+        const t = (lifeProgress - 0.1) / 0.2;
+        colorArray[i * 3] = 0.2 + (0.8 * t);      // r: 0.2 → 1.0
+        colorArray[i * 3 + 1] = 0.4 + (0.1 * t);  // g: 0.4 → 0.5
+        colorArray[i * 3 + 2] = 1.0 - t;          // b: 1.0 → 0
+      } else if (lifeProgress < 0.6) {
+        // Stage 3: Orange (1.0,0.5,0.0) → Red (1.0,0,0)
+        const t = (lifeProgress - 0.3) / 0.3;
+        colorArray[i * 3] = 1.0;                  // r: stays 1
+        colorArray[i * 3 + 1] = 0.5 - (0.5 * t);  // g: 0.5 → 0
+        colorArray[i * 3 + 2] = 0;                // b: stays 0
+      } else {
+        // Stage 4: Red fades to transparent
+        const t = (lifeProgress - 0.6) / 0.4;
+        const fade = 1.0 - t;
+        colorArray[i * 3] = fade;                 // r fades
+        colorArray[i * 3 + 1] = 0;                // g stays 0
+        colorArray[i * 3 + 2] = 0;                // b stays 0
       }
     }
 
     pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    pointsRef.current.geometry.attributes.color.needsUpdate = true;
   });
 
-  if (!isActive || !particles || particleConfig.count === 0) return null;
+  if (!isActive || !positions || !colors || propulsion === 'solar-sail') return null;
 
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={particles.length / 3}
-          array={particles}
+          args={[positions, 3]}
+          count={PARTICLE_COUNT}
+          array={positions}
           itemSize={3}
-          args={[particles, 3]}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          args={[colors, 3]}
+          count={PARTICLE_COUNT}
+          array={colors}
+          itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial
         size={particleConfig.size}
-        color={particleConfig.color}
+        vertexColors
         transparent
-        opacity={0.6}
+        opacity={1.0}
         sizeAttenuation
+        depthWrite={false}
       />
     </points>
   );

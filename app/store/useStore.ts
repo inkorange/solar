@@ -22,10 +22,13 @@ interface AppState {
   journeyStartTime: number; // Simulation time when journey started
   journeyElapsedTime: number; // Elapsed time in the journey (seconds)
   totalDistance: number; // Total journey distance in km
+  arrivalTime: number; // Simulation time when journey will complete
+  destinationPositionAtArrival: { x: number; z: number } | null; // Where destination will be when ship arrives
+  pausedBeforeSelection: boolean; // Pause state before entering propulsion selection
   setJourneyStatus: (status: JourneyStatus) => void;
   setOrigin: (planet: PlanetData | null) => void;
   setSelectedPropulsion: (propulsion: PropulsionType | null) => void;
-  startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number) => void;
+  startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number, arrivalTime: number, destinationPosAtArrival: { x: number; z: number }) => void;
   updateJourneyProgress: (delta: number) => void;
   completeJourney: () => void;
   resetJourney: () => void;
@@ -85,10 +88,23 @@ export const useStore = create<AppState>((set) => ({
   journeyStartTime: 0,
   journeyElapsedTime: 0,
   totalDistance: 0,
-  setJourneyStatus: (status) => set({ journeyStatus: status }),
+  arrivalTime: 0,
+  destinationPositionAtArrival: null,
+  pausedBeforeSelection: false,
+  setJourneyStatus: (status) => set((state) => {
+    // When entering propulsion selection, pause the simulation
+    if (status === 'selecting-propulsion') {
+      return {
+        journeyStatus: status,
+        pausedBeforeSelection: state.isPaused,
+        isPaused: true,
+      };
+    }
+    return { journeyStatus: status };
+  }),
   setOrigin: (planet) => set({ origin: planet }),
   setSelectedPropulsion: (propulsion) => set({ selectedPropulsion: propulsion }),
-  startJourney: (origin, destination, propulsion, distance) =>
+  startJourney: (origin, destination, propulsion, distance, arrivalTime, destinationPosAtArrival) =>
     set((state) => ({
       journeyStatus: 'traveling',
       origin,
@@ -97,6 +113,8 @@ export const useStore = create<AppState>((set) => ({
       journeyStartTime: state.simulationTime,
       journeyElapsedTime: 0,
       totalDistance: distance,
+      arrivalTime,
+      destinationPositionAtArrival: destinationPosAtArrival,
       isPaused: false,
     })),
   updateJourneyProgress: (delta) =>
@@ -120,9 +138,11 @@ export const useStore = create<AppState>((set) => ({
       journeyStartTime: 0,
       journeyElapsedTime: 0,
       totalDistance: 0,
+      arrivalTime: 0,
+      destinationPositionAtArrival: null,
     }),
   cancelJourney: () =>
-    set({
+    set((state) => ({
       journeyStatus: 'idle',
       origin: null,
       destination: null,
@@ -130,7 +150,10 @@ export const useStore = create<AppState>((set) => ({
       journeyStartTime: 0,
       journeyElapsedTime: 0,
       totalDistance: 0,
-    }),
+      arrivalTime: 0,
+      destinationPositionAtArrival: null,
+      isPaused: state.pausedBeforeSelection, // Restore previous pause state
+    })),
 
   // Time controls
   isPaused: false,
