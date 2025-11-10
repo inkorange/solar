@@ -2,7 +2,7 @@
 
 import { useRef, useState, useMemo } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
-import { Mesh, TextureLoader } from 'three';
+import { Mesh, TextureLoader, Group } from 'three';
 import { PlanetData, SCALE_FACTORS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import { Html } from '@react-three/drei';
@@ -15,15 +15,17 @@ interface PlanetProps {
 }
 
 export default function Planet({ data }: PlanetProps) {
-  const meshRef = useRef<Mesh>(null);
-  const groupRef = useRef<any>(null);
+  const meshRef = useRef<Mesh | null>(null);
+  const groupRef = useRef<Group | null>(null);
   const [hovered, setHovered] = useState(false);
 
-  const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime, timeSpeed, isPaused } = useStore();
+  const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime, timeSpeed, isPaused, journeyStatus } = useStore();
   const isSelected = selectedPlanet?.name === data.name;
 
-  // Load texture if available
-  const texture = data.texture ? useLoader(TextureLoader, data.texture) : null;
+  // Always call useLoader to satisfy hooks rules. Use a tiny transparent placeholder when no texture.
+  const placeholderDataUrl = useMemo(() => 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', []);
+  const loadedTexture = useLoader(TextureLoader, data.texture ?? placeholderDataUrl);
+  const texture = data.texture ? loadedTexture : null;
 
   // Calculate scaled values based on scale mode
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
@@ -111,7 +113,7 @@ export default function Planet({ data }: PlanetProps) {
       )}
 
       {/* Label */}
-      {showLabels && (
+      {showLabels && journeyStatus !== 'selecting-propulsion' && (
         <Html
           position={[0, planetSize * 1.8, 0]}
           center

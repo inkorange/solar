@@ -331,13 +331,15 @@ export const SUN_DATA = {
 export const SCALE_FACTORS = {
   // For visual mode (adjusted for better viewing)
   VISUAL: {
-    DISTANCE: 50, // Multiplier for orbital distances
+    DISTANCE: 50, // Multiplier for orbital distances (planets around sun)
+    MOON_DISTANCE: 150, // Multiplier for moon orbits around planets
     SIZE: 0.01, // Multiplier for planet sizes
     SUN_SIZE: 5, // Fixed sun size for visibility
   },
   // For realistic mode (true to scale)
   REALISTIC: {
     DISTANCE: 100,
+    MOON_DISTANCE: 200, // Multiplier for moon orbits in realistic mode
     SIZE: 0.001,
     SUN_SIZE: 10,
   }

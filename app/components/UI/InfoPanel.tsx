@@ -65,10 +65,12 @@ export default function InfoPanel() {
               <div className={styles.label}>Gravity</div>
               <div className={styles.value}>{selectedPlanet.gravity} m/s²</div>
             </div>
-            <div className={styles.dataItem}>
-              <div className={styles.label}>Moons</div>
-              <div className={styles.value}>{selectedPlanet.moons}</div>
-            </div>
+            {selectedPlanet.moons !== undefined && (
+              <div className={styles.dataItem}>
+                <div className={styles.label}>Moons</div>
+                <div className={styles.value}>{selectedPlanet.moons}</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -81,7 +83,11 @@ export default function InfoPanel() {
             </div>
             <div className={styles.dataItem}>
               <div className={styles.label}>Orbital Period</div>
-              <div className={styles.value}>{selectedPlanet.orbitalPeriod.toLocaleString()} days</div>
+              <div className={styles.value}>
+                {selectedPlanet.type?.includes('Asteroid') || selectedPlanet.type?.includes('Dwarf')
+                  ? `${selectedPlanet.orbitalPeriod.toFixed(2)} years`
+                  : `${selectedPlanet.orbitalPeriod.toLocaleString()} days`}
+              </div>
             </div>
             <div className={styles.dataItem}>
               <div className={styles.label}>Orbital Speed</div>
@@ -89,17 +95,23 @@ export default function InfoPanel() {
             </div>
             <div className={styles.dataItem}>
               <div className={styles.label}>Rotation Period</div>
-              <div className={styles.value}>{Math.abs(selectedPlanet.rotationPeriod)} days</div>
+              <div className={styles.value}>
+                {selectedPlanet.type?.includes('Asteroid') || selectedPlanet.type?.includes('Dwarf')
+                  ? `${Math.abs(selectedPlanet.rotationPeriod).toFixed(2)} hours`
+                  : `${Math.abs(selectedPlanet.rotationPeriod)} days`}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className={styles.section}>
-          <h3>Atmosphere</h3>
-          <div className={styles.atmosphereList}>
-            {selectedPlanet.atmosphere.join(', ')}
+        {selectedPlanet.atmosphere && selectedPlanet.atmosphere.length > 0 && (
+          <div className={styles.section}>
+            <h3>Atmosphere</h3>
+            <div className={styles.atmosphereList}>
+              {selectedPlanet.atmosphere.join(', ')}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.section}>
           <h3>Interesting Facts</h3>

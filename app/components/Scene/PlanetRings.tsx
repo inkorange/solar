@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useLoader } from '@react-three/fiber';
-import { TextureLoader, DoubleSide, Mesh, BufferGeometry, BufferAttribute } from 'three';
+import { TextureLoader, DoubleSide, Mesh, BufferGeometry, BufferAttribute, Texture } from 'three';
 
 interface PlanetRingsProps {
   innerRadius: number;
@@ -17,10 +17,12 @@ export default function PlanetRings({
   texture,
   opacity,
 }: PlanetRingsProps) {
-  const ringRef = useRef<Mesh>(null);
+  const ringRef = useRef<Mesh | null>(null);
 
-  // Load ring texture if provided
-  const ringTexture = texture ? useLoader(TextureLoader, texture) : null;
+  // Always call useLoader; use placeholder when no texture
+  const placeholderDataUrl = useMemo(() => 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', []);
+  const loadedTexture = useLoader(TextureLoader, texture ?? placeholderDataUrl);
+  const ringTexture = texture ? (loadedTexture as Texture) : null;
 
   // Load ring texture if provided
 
