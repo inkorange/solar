@@ -5,7 +5,7 @@ import { Mesh, Vector3, Group } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useStore } from '@/app/store/useStore';
 import { SCALE_FACTORS, PLANETS } from '@/app/data/planets';
-import { calculateTravelTime, getPropulsionById } from '@/app/data/propulsion';
+import { getPropulsionById, getFlightPhase, calculateDistanceTraveled } from '@/app/data/propulsion';
 import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
 import EngineTrail from './EngineTrail';
 
@@ -19,6 +19,7 @@ export default function Spaceship() {
     origin,
     destination,
     selectedPropulsion,
+    useFlipAndBurn,
     journeyElapsedTime,
     journeyStartTime,
     totalDistance,
@@ -71,36 +72,55 @@ export default function Spaceship() {
       destinationPositionAtArrival.z
     );
 
-    // Calculate progress (0 to 1)
+    // Calculate actual distance traveled using physics-based calculations
     const propulsion = getPropulsionById(selectedPropulsion);
     if (!propulsion) return originPos;
 
-    const totalTime = calculateTravelTime(totalDistance, propulsion);
-    const progress = Math.min(1, journeyElapsedTime / totalTime);
+    const distanceTraveled = calculateDistanceTraveled(
+      journeyElapsedTime,
+      totalDistance,
+      propulsion,
+      useFlipAndBurn
+    );
+
+    // Calculate progress based on actual distance traveled (0 to 1)
+    const progress = Math.min(1, distanceTraveled / totalDistance);
 
     // Interpolate position from departure point to intercept point
     return new Vector3().lerpVectors(originPos, destPos, progress);
-  }, [journeyStatus, origin, destination, selectedPropulsion, journeyElapsedTime, journeyStartTime, totalDistance, destinationPositionAtArrival, scaleMode, simulationTime]);
+  }, [journeyStatus, origin, destination, selectedPropulsion, useFlipAndBurn, journeyElapsedTime, journeyStartTime, totalDistance, destinationPositionAtArrival, scaleMode, simulationTime]);
+
+  // Calculate current flight phase for rendering
+  const flightPhase = useMemo(() => {
+    if (journeyStatus !== 'traveling' || !selectedPropulsion) return 'cruising';
+    const propulsion = getPropulsionById(selectedPropulsion);
+    return propulsion ? getFlightPhase(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn) : 'cruising';
+  }, [journeyStatus, selectedPropulsion, journeyElapsedTime, totalDistance, useFlipAndBurn]);
 
   // Update spaceship position and rotation
   useFrame(() => {
-    if (groupRef.current && journeyStatus === 'traveling') {
-      // Calculate direction of travel
-      if (previousPositionRef.current) {
-        const direction = new Vector3()
-          .subVectors(position, previousPositionRef.current)
-          .normalize();
+    if (groupRef.current && journeyStatus === 'traveling' && selectedPropulsion && destinationPositionAtArrival) {
+      // Get current flight phase
+      const isDecelerating = flightPhase === 'decelerating';
 
-        // Only rotate if there's significant movement
-        if (direction.length() > 0.001) {
-          // Calculate angle in XZ plane (horizontal rotation)
-          const angle = Math.atan2(direction.z, direction.x);
+      // Calculate direction to destination (the trajectory)
+      const destPos = new Vector3(
+        destinationPositionAtArrival.x,
+        0,
+        destinationPositionAtArrival.z
+      );
+      const directionToDestination = new Vector3()
+        .subVectors(destPos, position)
+        .normalize();
 
-          // Rotate the entire group to face travel direction
-          // Spaceship model points in +X direction by default (Math.PI / 2 rotation applied in mesh)
-          groupRef.current.rotation.y = -angle;
-        }
-      }
+      // Calculate angle in XZ plane (horizontal rotation)
+      const angle = Math.atan2(directionToDestination.z, directionToDestination.x);
+
+      // Rotate the entire group to face travel direction
+      // During acceleration/cruise: face forward (engines behind)
+      // During deceleration: flip 180 degrees (engines in front, pointing toward destination)
+      // Spaceship model points in +X direction by default (Math.PI / 2 rotation applied in mesh)
+      groupRef.current.rotation.y = -angle + (isDecelerating ? Math.PI : 0);
 
       // Update position
       groupRef.current.position.copy(position);
@@ -118,25 +138,28 @@ export default function Spaceship() {
     return null;
   }
 
+  // Scale factor to make spaceship much smaller (5% of original size)
+  const SHIP_SCALE = 0.05;
+
   return (
     <group ref={groupRef}>
       {/* Realistic spacecraft design */}
 
       {/* Main fuselage - elongated body */}
       <mesh ref={bodyRef} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.25, 0.25, 1.2, 16]} />
+        <cylinderGeometry args={[0.25 * SHIP_SCALE, 0.25 * SHIP_SCALE, 1.2 * SHIP_SCALE, 16]} />
         <meshStandardMaterial color="#c0c0c0" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Nose cone - aerodynamic front */}
-      <mesh position={[0.7, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <coneGeometry args={[0.25, 0.5, 16]} />
+      <mesh position={[0.7 * SHIP_SCALE, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <coneGeometry args={[0.25 * SHIP_SCALE, 0.5 * SHIP_SCALE, 16]} />
         <meshStandardMaterial color="#d0d0d0" metalness={0.3} roughness={0.6} />
       </mesh>
 
       {/* Cockpit window - transparent */}
-      <mesh position={[0.5, 0, 0.26]} rotation={[0, 0, 0]}>
-        <sphereGeometry args={[0.15, 16, 16, 0, Math.PI]} />
+      <mesh position={[0.5 * SHIP_SCALE, 0, 0.26 * SHIP_SCALE]} rotation={[0, 0, 0]}>
+        <sphereGeometry args={[0.15 * SHIP_SCALE, 16, 16, 0, Math.PI]} />
         <meshStandardMaterial
           color="#1a4d7a"
           metalness={0.5}
@@ -149,9 +172,9 @@ export default function Spaceship() {
       </mesh>
 
       {/* Upper solar panel wing */}
-      <group position={[0, 0.25, 0]}>
-        <mesh position={[0, 0.5, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8, 0.02, 1.4]} />
+      <group position={[0, 0.25 * SHIP_SCALE, 0]}>
+        <mesh position={[0, 0.5 * SHIP_SCALE, 0]} rotation={[0, 0, 0]}>
+          <boxGeometry args={[0.8 * SHIP_SCALE, 0.02 * SHIP_SCALE, 1.4 * SHIP_SCALE]} />
           <meshStandardMaterial
             color="#1a3d5c"
             metalness={0.4}
@@ -161,16 +184,16 @@ export default function Spaceship() {
           />
         </mesh>
         {/* Solar panel frame */}
-        <mesh position={[0, 0.51, 0]}>
-          <boxGeometry args={[0.85, 0.01, 1.45]} />
+        <mesh position={[0, 0.51 * SHIP_SCALE, 0]}>
+          <boxGeometry args={[0.85 * SHIP_SCALE, 0.01 * SHIP_SCALE, 1.45 * SHIP_SCALE]} />
           <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.5} />
         </mesh>
       </group>
 
       {/* Lower solar panel wing */}
-      <group position={[0, -0.25, 0]}>
-        <mesh position={[0, -0.5, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8, 0.02, 1.4]} />
+      <group position={[0, -0.25 * SHIP_SCALE, 0]}>
+        <mesh position={[0, -0.5 * SHIP_SCALE, 0]} rotation={[0, 0, 0]}>
+          <boxGeometry args={[0.8 * SHIP_SCALE, 0.02 * SHIP_SCALE, 1.4 * SHIP_SCALE]} />
           <meshStandardMaterial
             color="#1a3d5c"
             metalness={0.4}
@@ -180,69 +203,73 @@ export default function Spaceship() {
           />
         </mesh>
         {/* Solar panel frame */}
-        <mesh position={[0, -0.51, 0]}>
-          <boxGeometry args={[0.85, 0.01, 1.45]} />
+        <mesh position={[0, -0.51 * SHIP_SCALE, 0]}>
+          <boxGeometry args={[0.85 * SHIP_SCALE, 0.01 * SHIP_SCALE, 1.45 * SHIP_SCALE]} />
           <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.5} />
         </mesh>
       </group>
 
       {/* Engine section - rear block */}
-      <mesh position={[-0.65, 0, 0]}>
-        <boxGeometry args={[0.3, 0.35, 0.35]} />
+      <mesh position={[-0.65 * SHIP_SCALE, 0, 0]}>
+        <boxGeometry args={[0.3 * SHIP_SCALE, 0.35 * SHIP_SCALE, 0.35 * SHIP_SCALE]} />
         <meshStandardMaterial color="#a0a0a0" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Main engine nozzle - center */}
-      <mesh position={[-0.85, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.12, 0.15, 0.25, 16]} />
+      <mesh position={[-0.85 * SHIP_SCALE, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.12 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0.25 * SHIP_SCALE, 16]} />
         <meshStandardMaterial color="#606060" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Top thruster */}
-      <mesh position={[-0.75, 0.15, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.06, 0.08, 0.15, 12]} />
+      <mesh position={[-0.75 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.06 * SHIP_SCALE, 0.08 * SHIP_SCALE, 0.15 * SHIP_SCALE, 12]} />
         <meshStandardMaterial color="#505050" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Bottom thruster */}
-      <mesh position={[-0.75, -0.15, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.06, 0.08, 0.15, 12]} />
+      <mesh position={[-0.75 * SHIP_SCALE, -0.15 * SHIP_SCALE, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.06 * SHIP_SCALE, 0.08 * SHIP_SCALE, 0.15 * SHIP_SCALE, 12]} />
         <meshStandardMaterial color="#505050" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Engine glow - main */}
-      <pointLight position={[-0.95, 0, 0]} intensity={0.8} distance={6} color="#60a5fa" />
+      <pointLight position={[-0.95 * SHIP_SCALE, 0, 0]} intensity={0.04} distance={6 * SHIP_SCALE} color="#60a5fa" />
 
       {/* Engine glow - thrusters */}
-      <pointLight position={[-0.85, 0.15, 0]} intensity={0.3} distance={3} color="#60a5fa" />
-      <pointLight position={[-0.85, -0.15, 0]} intensity={0.3} distance={3} color="#60a5fa" />
+      <pointLight position={[-0.85 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0]} intensity={0.015} distance={3 * SHIP_SCALE} color="#60a5fa" />
+      <pointLight position={[-0.85 * SHIP_SCALE, -0.15 * SHIP_SCALE, 0]} intensity={0.015} distance={3 * SHIP_SCALE} color="#60a5fa" />
 
       {/* Exhaust glow - main engine */}
-      <mesh position={[-0.95, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.12, 0.2, 16]} />
+      <mesh position={[-0.95 * SHIP_SCALE, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.12 * SHIP_SCALE, 0.2 * SHIP_SCALE, 16]} />
         <meshBasicMaterial color="#60a5fa" transparent opacity={0.7} />
       </mesh>
 
       {/* Exhaust glow - top thruster */}
-      <mesh position={[-0.82, 0.15, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.06, 0.12, 12]} />
+      <mesh position={[-0.82 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.06 * SHIP_SCALE, 0.12 * SHIP_SCALE, 12]} />
         <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} />
       </mesh>
 
       {/* Exhaust glow - bottom thruster */}
-      <mesh position={[-0.82, -0.15, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.06, 0.12, 12]} />
+      <mesh position={[-0.82 * SHIP_SCALE, -0.15 * SHIP_SCALE, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[0.06 * SHIP_SCALE, 0.12 * SHIP_SCALE, 12]} />
         <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} />
       </mesh>
 
       {/* Communication antenna */}
-      <mesh position={[0.2, 0.3, 0]}>
-        <cylinderGeometry args={[0.01, 0.01, 0.15, 8]} />
+      <mesh position={[0.2 * SHIP_SCALE, 0.3 * SHIP_SCALE, 0]}>
+        <cylinderGeometry args={[0.01 * SHIP_SCALE, 0.01 * SHIP_SCALE, 0.15 * SHIP_SCALE, 8]} />
         <meshStandardMaterial color="#808080" metalness={0.5} roughness={0.5} />
       </mesh>
 
       {/* Engine trail particles */}
-      <EngineTrail propulsion={selectedPropulsion} isActive={journeyStatus === 'traveling'} />
+      <EngineTrail
+        propulsion={selectedPropulsion}
+        isActive={journeyStatus === 'traveling'}
+        flightPhase={flightPhase}
+      />
     </group>
   );
 }

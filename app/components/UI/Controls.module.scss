@@ -1,15 +1,27 @@
-.controls {
+.controlsWrapper {
   position: fixed;
-  bottom: 20px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 100;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.visible {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  &.hidden {
+    transform: translateX(-50%) translateY(calc(100% - 12px));
+  }
+}
+
+.controls {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
+  border-radius: 12px 12px 0 0;
   backdrop-filter: blur(10px);
   padding: 16px 24px;
   color: var(--foreground);
-  z-index: 100;
   display: flex;
   align-items: center;
   gap: 24px;
@@ -117,5 +129,147 @@
     width: 1px;
     height: 30px;
     background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.toggleButton {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 32px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px 12px 0 0;
+  backdrop-filter: blur(10px);
+  color: var(--accent-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 101;
+
+  &:hover {
+    background: rgba(96, 165, 250, 0.1);
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  svg {
+    transition: transform 0.2s ease;
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--foreground);
+  }
+}
+
+// Tablet optimization
+@media (max-width: 1024px) {
+  .controls {
+    padding: 12px 16px;
+    gap: 16px;
+    max-width: calc(100vw - 40px);
+    overflow-x: auto;
+
+    .controlGroup {
+      gap: 8px;
+
+      label {
+        font-size: 11px;
+      }
+    }
+
+    .speedButtons button,
+    .toggleGroup button {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .playPauseButton {
+      width: 36px;
+      height: 36px;
+      font-size: 16px;
+    }
+
+    .divider {
+      height: 24px;
+    }
+  }
+
+  .toggleButton {
+    width: 50px;
+    height: 28px;
+  }
+}
+
+// Small tablets and large phones
+@media (max-width: 768px) {
+  .controlsWrapper {
+    &.hidden {
+      transform: translateX(-50%) translateY(calc(100% - 8px));
+    }
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 12px 10px;
+    max-width: calc(100vw - 20px);
+    border-radius: 12px 12px 0 0;
+
+    .divider {
+      display: none;
+    }
+
+    .controlGroup {
+      gap: 6px;
+
+      label {
+        font-size: 10px;
+      }
+    }
+
+    .speedButtons button {
+      padding: 5px 8px;
+      font-size: 10px;
+    }
+
+    .toggleGroup button {
+      padding: 6px 12px;
+      font-size: 10px;
+    }
+  }
+
+  .toggleButton {
+    width: 80px;
+    height: 24px;
+    top: -28px;
+    border-radius: 8px 8px 0 0;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
   }
 }

@@ -6,7 +6,8 @@
       "Bash(npm run dev:*)",
       "WebFetch(domain:api.le-systeme-solaire.net)",
       "WebSearch",
-      "WebFetch(domain:ssd.jpl.nasa.gov)"
+      "WebFetch(domain:ssd.jpl.nasa.gov)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

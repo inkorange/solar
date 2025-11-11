@@ -150,4 +150,59 @@
       background: rgba(255, 255, 255, 0.3);
     }
   }
+
+  // Tablet optimization
+  @media (max-width: 1024px) {
+    width: 240px;
+    padding: 16px;
+    top: 10px;
+    left: 10px;
+
+    h2 {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    .searchContainer .searchInput {
+      padding: 8px 28px 8px 10px;
+      font-size: 13px;
+    }
+
+    .planetItem {
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .groupTitle {
+      font-size: 11px;
+      margin: 16px 0 10px 0;
+    }
+  }
+
+  // Small tablets and phones - make it collapsible or smaller
+  @media (max-width: 768px) {
+    width: 200px;
+    padding: 12px;
+    max-height: 50vh;
+
+    h2 {
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .searchContainer .searchInput {
+      padding: 6px 24px 6px 8px;
+      font-size: 12px;
+    }
+
+    .planetItem {
+      padding: 8px;
+      font-size: 12px;
+    }
+
+    .groupTitle {
+      font-size: 10px;
+      margin: 12px 0 8px 0;
+    }
+  }
 }

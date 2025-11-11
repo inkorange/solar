@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useStore, CameraMode } from '@/app/store/useStore';
 import { SCALE_FACTORS } from '@/app/data/planets';
 import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
@@ -21,6 +22,9 @@ const CAMERA_MODES: { mode: CameraMode; label: string }[] = [
 ];
 
 export default function Controls() {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
   const {
     isPaused,
     setIsPaused,
@@ -30,6 +34,10 @@ export default function Controls() {
     toggleOrbits,
     showLabels,
     toggleLabels,
+    showFPS,
+    toggleFPS,
+    unitSystem,
+    setUnitSystem,
     cameraMode,
     setCameraMode,
     selectedPlanet,
@@ -37,6 +45,22 @@ export default function Controls() {
     simulationTime,
     scaleMode,
   } = useStore();
+
+  // Detect if mobile on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      // On desktop, start visible; on mobile, start hidden
+      if (!mobile) {
+        setIsVisible(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleCameraModeChange = (mode: CameraMode) => {
     // If switching to planet-focus mode and there's a selected planet,
@@ -81,8 +105,43 @@ export default function Controls() {
     setCameraMode(mode);
   };
 
+  const handleMouseEnter = () => {
+    if (!isMobile) {
+      setIsVisible(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!isMobile) {
+      setIsVisible(false);
+    }
+  };
+
+  const toggleVisibility = () => {
+    setIsVisible(!isVisible);
+  };
+
   return (
-    <div className={styles.controls}>
+    <div
+      className={`${styles.controlsWrapper} ${isVisible ? styles.visible : styles.hidden}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Toggle button (visible when hidden, especially on mobile) */}
+      {!isVisible && (
+        <button
+          className={styles.toggleButton}
+          onClick={toggleVisibility}
+          aria-label="Show controls"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+      )}
+
+      {/* Main controls panel */}
+      <div className={styles.controls}>
       {/* Play/Pause */}
       <div className={styles.controlGroup}>
         <button
@@ -149,8 +208,49 @@ export default function Controls() {
           >
             Labels
           </button>
+          <button
+            className={showFPS ? styles.active : ''}
+            onClick={toggleFPS}
+          >
+            FPS
+          </button>
         </div>
       </div>
+
+      <div className={styles.divider} />
+
+      {/* Unit system */}
+      <div className={styles.controlGroup}>
+        <label>Units</label>
+        <div className={styles.toggleGroup}>
+          <button
+            className={unitSystem === 'metric' ? styles.active : ''}
+            onClick={() => setUnitSystem('metric')}
+          >
+            Metric
+          </button>
+          <button
+            className={unitSystem === 'imperial' ? styles.active : ''}
+            onClick={() => setUnitSystem('imperial')}
+          >
+            Imperial
+          </button>
+        </div>
+      </div>
+      </div>
+
+      {/* Close button for mobile when visible */}
+      {isMobile && isVisible && (
+        <button
+          className={styles.closeButton}
+          onClick={toggleVisibility}
+          aria-label="Hide controls"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

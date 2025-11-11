@@ -32,6 +32,7 @@ export default function PropulsionSelector() {
   const [selectedOrigin, setSelectedOrigin] = useState<PlanetData | null>(
     PLANETS.find(p => p.name === 'Earth') || origin
   );
+  const [useFlipAndBurn, setUseFlipAndBurn] = useState<boolean>(true);
 
   // Calculate intercept courses for each propulsion system
   // This accounts for where the destination planet will be when the ship arrives
@@ -49,13 +50,13 @@ export default function PropulsionSelector() {
         destination,
         simulationTime,
         scaleFactor.DISTANCE,
-        (distanceKm) => calculateTravelTime(distanceKm, propulsion)
+        (distanceKm) => calculateTravelTime(distanceKm, propulsion, useFlipAndBurn)
       );
       courses.set(propulsion.id, course);
     });
 
     return courses;
-  }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE, journeyStatus, origin]);
+  }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE, journeyStatus, origin, useFlipAndBurn]);
 
   // If not in propulsion selection mode or missing data, render nothing (hooks already executed above)
   if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) {
@@ -91,7 +92,8 @@ export default function PropulsionSelector() {
         selected,
         selectedCourse.distance,
         selectedCourse.arrivalTime,
-        selectedCourse.destinationPositionAtArrival
+        selectedCourse.destinationPositionAtArrival,
+        useFlipAndBurn
       );
     }
   };
@@ -133,6 +135,26 @@ export default function PropulsionSelector() {
             </select>
           </div>
 
+          {/* Flip and Burn toggle */}
+          <div className={styles.flipAndBurnToggle}>
+            <label className={styles.toggleLabel}>
+              <input
+                type="checkbox"
+                checked={useFlipAndBurn}
+                onChange={(e) => setUseFlipAndBurn(e.target.checked)}
+                className={styles.checkbox}
+              />
+              <span className={styles.toggleText}>
+                <strong>Flip and Burn</strong> - Decelerate to arrive at destination (recommended)
+              </span>
+            </label>
+            <p className={styles.toggleDescription}>
+              When enabled, the ship will flip halfway through the journey and fire engines backward to decelerate,
+              allowing it to stop at the destination. When disabled, the ship will coast at maximum velocity and
+              fly past the target. Not available for Light Speed and Warp Drive.
+            </p>
+          </div>
+
           <div className={styles.routeInfo}>
             <div className={styles.routeText}>
               <span>{selectedOrigin?.name}</span> → <span>{destination.name}</span>
@@ -147,7 +169,7 @@ export default function PropulsionSelector() {
               const course = interceptCourses.get(propulsion.id);
               if (!course) return null;
 
-              const travelTime = calculateTravelTime(course.distance, propulsion);
+              const travelTime = calculateTravelTime(course.distance, propulsion, useFlipAndBurn);
               const isSelected = selected === propulsion.id;
               const isExpanded = expandedCards.has(propulsion.id);
 

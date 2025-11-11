@@ -9,12 +9,16 @@ import { useStore } from '@/app/store/useStore';
 interface EngineTrailProps {
   propulsion: PropulsionType | null;
   isActive: boolean;
+  flightPhase: 'accelerating' | 'cruising' | 'decelerating';
 }
 
 const PARTICLE_COUNT = 350;
 const PARTICLE_LIFETIME = 1.0; // seconds
+const SHIP_SCALE = 0.05; // Match spaceship scale
 
-export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) {
+export default function EngineTrail({ propulsion, isActive, flightPhase }: EngineTrailProps) {
+  // Only show engine effects when accelerating or decelerating
+  const shouldShowEngines = flightPhase === 'accelerating' || flightPhase === 'decelerating';
   const pointsRef = useRef<Points>(null);
   const particleDataRef = useRef<{
     velocities: Float32Array;
@@ -26,30 +30,30 @@ export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) 
   // Configure particle system based on propulsion type
   const particleConfig = useMemo(() => {
     if (!propulsion) {
-      return { size: 0.15, speed: 1.5 };
+      return { size: 0.15 * SHIP_SCALE, speed: 1.5 * SHIP_SCALE };
     }
 
     switch (propulsion) {
       case 'chemical-rocket':
-        return { size: 0.2, speed: 4.0 };
+        return { size: 0.2 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'ion-thruster':
-        return { size: 0.12, speed: 3.0 };
+        return { size: 0.12 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
       case 'solar-sail':
         return { size: 0, speed: 0 }; // No visible exhaust
       case 'nuclear-thermal':
-        return { size: 0.18, speed: 4.0 };
+        return { size: 0.18 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'antimatter':
-        return { size: 0.25, speed: 4.0 };
+        return { size: 0.25 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'warp-drive':
-        return { size: 0.15, speed: 4.0 };
+        return { size: 0.15 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       default:
-        return { size: 0.15, speed: 3.0 };
+        return { size: 0.15 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
     }
   }, [propulsion]);
 
   // Generate initial particles
   const { positions, colors, velocities, ages } = useMemo(() => {
-    if (!isActive || propulsion === 'solar-sail') {
+    if (!isActive || !shouldShowEngines || propulsion === 'solar-sail') {
       return { positions: null, colors: null };
     }
 
@@ -70,10 +74,10 @@ export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) 
       const r3 = seededRandom(i * 4 + 3);
       const r4 = seededRandom(i * 4 + 4);
 
-      // Start at engine position with tighter spread
-      positions[i * 3] = -0.85 + r1 * 0.1; // x (at engine)
-      positions[i * 3 + 1] = (r2 - 0.5) * 0.15; // y (tighter)
-      positions[i * 3 + 2] = (r3 - 0.5) * 0.15; // z (tighter)
+      // Start at engine position with tighter spread (scaled to match ship size)
+      positions[i * 3] = (-0.85 + r1 * 0.1) * SHIP_SCALE; // x (at engine)
+      positions[i * 3 + 1] = (r2 - 0.5) * 0.15 * SHIP_SCALE; // y (tighter)
+      positions[i * 3 + 2] = (r3 - 0.5) * 0.15 * SHIP_SCALE; // z (tighter)
 
       // Random age for staggered start
       ages[i] = r4 * PARTICLE_LIFETIME;
@@ -92,7 +96,7 @@ export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) 
     }
 
     return { positions, colors, velocities, ages };
-  }, [isActive, propulsion, particleConfig.speed]);
+  }, [isActive, shouldShowEngines, propulsion, particleConfig.speed]);
 
   // Store particle arrays in ref after initial creation (outside render)
   useEffect(() => {
@@ -116,9 +120,9 @@ export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) 
       // Reset particle if it's too old
       if (ages[i] > PARTICLE_LIFETIME) {
         ages[i] = 0;
-        posArray[i * 3] = -0.85 + Math.random() * 0.1;
-        posArray[i * 3 + 1] = (Math.random() - 0.5) * 0.15;
-        posArray[i * 3 + 2] = (Math.random() - 0.5) * 0.15;
+        posArray[i * 3] = (-0.85 + Math.random() * 0.1) * SHIP_SCALE;
+        posArray[i * 3 + 1] = (Math.random() - 0.5) * 0.15 * SHIP_SCALE;
+        posArray[i * 3 + 2] = (Math.random() - 0.5) * 0.15 * SHIP_SCALE;
       } else {
         // Update position based on velocity, scaled by timeSpeed
         posArray[i * 3] += velocities[i * 3] * delta * 1;
@@ -161,7 +165,7 @@ export default function EngineTrail({ propulsion, isActive }: EngineTrailProps) 
     pointsRef.current.geometry.attributes.color.needsUpdate = true;
   });
 
-  if (!isActive || !positions || !colors || propulsion === 'solar-sail') return null;
+  if (!isActive || !shouldShowEngines || !positions || !colors || propulsion === 'solar-sail') return null;
 
   return (
     <points ref={pointsRef}>
