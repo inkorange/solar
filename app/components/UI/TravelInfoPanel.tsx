@@ -5,6 +5,8 @@ import {
   getPropulsionById,
   calculateTravelTime,
   calculateCurrentSpeed,
+  getFlightPhase,
+  calculateDistanceTraveled,
   formatDuration,
   CONSTANTS,
 } from '@/app/data/propulsion';
@@ -16,6 +18,7 @@ export default function TravelInfoPanel() {
     destination,
     origin,
     selectedPropulsion,
+    useFlipAndBurn,
     journeyElapsedTime,
     totalDistance,
     cancelJourney,
@@ -29,11 +32,50 @@ export default function TravelInfoPanel() {
   const propulsion = getPropulsionById(selectedPropulsion);
   if (!propulsion) return null;
 
-  const totalTime = calculateTravelTime(totalDistance, propulsion);
-  const currentSpeed = calculateCurrentSpeed(journeyElapsedTime, totalDistance, propulsion);
+  const totalTime = calculateTravelTime(totalDistance, propulsion, useFlipAndBurn);
+  const currentSpeed = calculateCurrentSpeed(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn);
+  const flightPhase = getFlightPhase(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn);
   const remainingTime = Math.max(0, totalTime - journeyElapsedTime);
-  const progress = Math.min(100, (journeyElapsedTime / totalTime) * 100);
-  const distanceRemaining = totalDistance * (1 - journeyElapsedTime / totalTime);
+
+  // Calculate actual distance traveled using physics
+  const distanceTraveled = calculateDistanceTraveled(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn);
+  const progress = Math.min(100, (distanceTraveled / totalDistance) * 100);
+  const distanceRemaining = Math.max(0, totalDistance - distanceTraveled);
+
+  // Debug logging - only log occasionally to avoid console spam
+  if (typeof window !== 'undefined' && journeyElapsedTime > 0 && Math.floor(journeyElapsedTime) % 2 === 0) {
+    const timeToMaxSpeed = propulsion.maxSpeed / (propulsion.acceleration / 1000);
+    const decelStartTime = totalTime - timeToMaxSpeed;
+
+    console.log('Journey Debug:', {
+      phase: flightPhase,
+      speed: currentSpeed.toFixed(2) + ' km/s',
+      maxSpeed: propulsion.maxSpeed + ' km/s',
+      acceleration: propulsion.acceleration + ' m/s²',
+      progress: progress.toFixed(1) + '%',
+      elapsed: journeyElapsedTime.toFixed(1) + 's',
+      total: totalTime.toFixed(1) + 's',
+      decelStartTime: decelStartTime.toFixed(1) + 's',
+      distanceTraveled: (distanceTraveled / 1000000).toFixed(2) + ' M km',
+      distanceRemaining: (distanceRemaining / 1000000).toFixed(2) + ' M km',
+      useFlipAndBurn,
+      propulsion: propulsion.name
+    });
+  }
+
+  // Get phase display info
+  const getPhaseInfo = () => {
+    switch (flightPhase) {
+      case 'accelerating':
+        return { text: 'Accelerating', icon: '🚀', color: '#4ade80' };
+      case 'cruising':
+        return { text: 'Cruising', icon: '✈️', color: '#60a5fa' };
+      case 'decelerating':
+        return { text: 'Decelerating', icon: '🔄', color: '#f59e0b' };
+    }
+  };
+
+  const phaseInfo = getPhaseInfo();
 
   // Show arrived state
   if (journeyStatus === 'arrived') {
@@ -101,6 +143,13 @@ export default function TravelInfoPanel() {
           <span className={styles.icon}>{propulsion.icon}</span>
           <span>{propulsion.displayName}</span>
         </div>
+      </div>
+
+      <div className={styles.flightPhase} style={{ borderColor: phaseInfo.color }}>
+        <span className={styles.phaseIcon}>{phaseInfo.icon}</span>
+        <span className={styles.phaseText} style={{ color: phaseInfo.color }}>
+          {phaseInfo.text}
+        </span>
       </div>
 
       <div className={styles.progressBar}>

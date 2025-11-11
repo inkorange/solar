@@ -34,6 +34,10 @@ export default function InfoPanel() {
 
   if (!showInfoPanel || !selectedPlanet) return null;
 
+  // Determine if this is a moon (has parentPlanet property)
+  const isMoon = 'parentPlanet' in selectedPlanet;
+  const isPlanetOrAsteroid = 'distanceFromSun' in selectedPlanet;
+
   return (
     <div className={styles.infoPanel}>
       <div className={styles.scrollContent}>
@@ -48,7 +52,9 @@ export default function InfoPanel() {
           </button>
         </div>
 
-        <div className={styles.type}>{selectedPlanet.type}</div>
+        <div className={styles.type}>
+          {isMoon ? `Moon of ${(selectedPlanet as any).parentPlanet}` : selectedPlanet.type}
+        </div>
 
         <div className={styles.section}>
           <h3>Physical Characteristics</h3>
@@ -77,14 +83,24 @@ export default function InfoPanel() {
         <div className={styles.section}>
           <h3>Orbital Data</h3>
           <div className={styles.dataGrid}>
-            <div className={styles.dataItem}>
-              <div className={styles.label}>Distance from Sun</div>
-              <div className={styles.value}>{selectedPlanet.distanceFromSun} AU</div>
-            </div>
+            {isPlanetOrAsteroid && (
+              <div className={styles.dataItem}>
+                <div className={styles.label}>Distance from Sun</div>
+                <div className={styles.value}>{selectedPlanet.distanceFromSun} AU</div>
+              </div>
+            )}
+            {isMoon && (
+              <div className={styles.dataItem}>
+                <div className={styles.label}>Distance from {(selectedPlanet as any).parentPlanet}</div>
+                <div className={styles.value}>{((selectedPlanet as any).distanceFromPlanet).toLocaleString()} km</div>
+              </div>
+            )}
             <div className={styles.dataItem}>
               <div className={styles.label}>Orbital Period</div>
               <div className={styles.value}>
-                {selectedPlanet.type?.includes('Asteroid') || selectedPlanet.type?.includes('Dwarf')
+                {isMoon
+                  ? `${selectedPlanet.orbitalPeriod.toFixed(2)} days`
+                  : selectedPlanet.type?.includes('Asteroid') || selectedPlanet.type?.includes('Dwarf')
                   ? `${selectedPlanet.orbitalPeriod.toFixed(2)} years`
                   : `${selectedPlanet.orbitalPeriod.toLocaleString()} days`}
               </div>
@@ -93,14 +109,22 @@ export default function InfoPanel() {
               <div className={styles.label}>Orbital Speed</div>
               <div className={styles.value}>{selectedPlanet.orbitalSpeed} km/s</div>
             </div>
-            <div className={styles.dataItem}>
-              <div className={styles.label}>Rotation Period</div>
-              <div className={styles.value}>
-                {selectedPlanet.type?.includes('Asteroid') || selectedPlanet.type?.includes('Dwarf')
-                  ? `${Math.abs(selectedPlanet.rotationPeriod).toFixed(2)} hours`
+            {isPlanetOrAsteroid && (
+              <div className={styles.dataItem}>
+                <div className={styles.label}>Rotation Period</div>
+                <div className={styles.value}>
+                  {selectedPlanet.type?.includes('Asteroid') || selectedPlanet.type?.includes('Dwarf')
+                    ? `${Math.abs(selectedPlanet.rotationPeriod).toFixed(2)} hours`
                   : `${Math.abs(selectedPlanet.rotationPeriod)} days`}
               </div>
             </div>
+            )}
+            {isMoon && (selectedPlanet as any).tidally_locked && (
+              <div className={styles.dataItem}>
+                <div className={styles.label}>Rotation</div>
+                <div className={styles.value}>Tidally Locked</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -123,7 +147,7 @@ export default function InfoPanel() {
         </div>
       </div>
 
-      {journeyStatus === 'idle' && (
+      {journeyStatus === 'idle' && !isMoon && (
         <div className={styles.stickyFooter}>
           <button className={styles.travelButton} onClick={handleTravelTo}>
             🚀 Travel to {selectedPlanet.name}

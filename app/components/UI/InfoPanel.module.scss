@@ -204,4 +204,64 @@
       transform: translateY(0);
     }
   }
+
+  // Tablet optimization
+  @media (max-width: 1024px) {
+    width: 320px;
+    top: 10px;
+    right: 10px;
+
+    .scrollContent {
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    h2, h3 {
+      font-size: 16px;
+    }
+
+    .section {
+      font-size: 13px;
+    }
+
+    .travelButton {
+      padding: 14px 20px;
+      font-size: 15px;
+    }
+  }
+
+  // Small tablets and phones
+  @media (max-width: 768px) {
+    width: calc(100% - 20px);
+    top: auto;
+    bottom: 80px;
+    right: 10px;
+    left: 10px;
+    max-height: 40vh;
+
+    .scrollContent {
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    h2, h3 {
+      font-size: 14px;
+    }
+
+    .section {
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .travelButton {
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+  }
 }

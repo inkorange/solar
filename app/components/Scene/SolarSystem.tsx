@@ -26,7 +26,7 @@ import { getMoonsForPlanet } from '@/app/data/moons';
 import { ASTEROIDS } from '@/app/data/asteroids';
 import { useStore } from '@/app/store/useStore';
 import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
-import { calculateTravelTime, getPropulsionById } from '@/app/data/propulsion';
+import { getPropulsionById, calculateDistanceTraveled, calculateCurrentSpeed, getFlightPhase, calculateTravelTime } from '@/app/data/propulsion';
 
 function SceneUpdater() {
   const updateSimulationTime = useStore((state) => state.updateSimulationTime);
@@ -35,22 +35,82 @@ function SceneUpdater() {
   const journeyElapsedTime = useStore((state) => state.journeyElapsedTime);
   const totalDistance = useStore((state) => state.totalDistance);
   const selectedPropulsion = useStore((state) => state.selectedPropulsion);
+  const useFlipAndBurn = useStore((state) => state.useFlipAndBurn);
   const completeJourney = useStore((state) => state.completeJourney);
 
+  const frameCountRef = useRef<number>(0);
+  const accumulatedDeltaRef = useRef<number>(0);
+
   useFrame((state, delta) => {
+    // Debug: Track delta accumulation
+    frameCountRef.current++;
+    accumulatedDeltaRef.current += delta;
+
+    // Log every 60 frames (about 1 second at 60fps)
+    if (frameCountRef.current % 60 === 0) {
+      console.log('[Frame 60] Delta:', delta.toFixed(4), 's | Total accumulated:', accumulatedDeltaRef.current.toFixed(2), 's | Frames:', frameCountRef.current);
+      accumulatedDeltaRef.current = 0; // Reset accumulator
+    }
+
     updateSimulationTime(delta);
 
     // Update journey progress if traveling
     if (journeyStatus === 'traveling') {
       updateJourneyProgress(delta);
 
-      // Check if journey is complete
+      // Check if journey is complete based on speed reaching 0 (for flip-and-burn) or distance (for no flip-and-burn)
       if (selectedPropulsion) {
         const propulsion = getPropulsionById(selectedPropulsion);
         if (propulsion) {
-          const totalTime = calculateTravelTime(totalDistance, propulsion);
-          if (journeyElapsedTime >= totalTime) {
-            completeJourney();
+          const currentSpeed = calculateCurrentSpeed(
+            journeyElapsedTime,
+            totalDistance,
+            propulsion,
+            useFlipAndBurn
+          );
+
+          const distanceTraveled = calculateDistanceTraveled(
+            journeyElapsedTime,
+            totalDistance,
+            propulsion,
+            useFlipAndBurn
+          );
+
+          const progress = (distanceTraveled / totalDistance) * 100;
+          const flightPhase = getFlightPhase(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn);
+          const totalTime = calculateTravelTime(totalDistance, propulsion, useFlipAndBurn);
+
+          // Debug logging every 2 seconds of journey time
+          if (Math.floor(journeyElapsedTime) % 2 === 0 && Math.floor(journeyElapsedTime) !== Math.floor(journeyElapsedTime - delta)) {
+            console.log('[Journey Status]', {
+              phase: flightPhase,
+              elapsed: journeyElapsedTime.toFixed(1) + 's / ' + totalTime.toFixed(1) + 's',
+              speed: currentSpeed.toFixed(2) + ' km/s (max: ' + propulsion.maxSpeed + ')',
+              progress: progress.toFixed(2) + '%',
+              distance: (distanceTraveled / 1000000).toFixed(2) + 'M km / ' + (totalDistance / 1000000).toFixed(2) + 'M km',
+              useFlipAndBurn,
+            });
+          }
+
+          // For flip-and-burn: complete when speed reaches near 0 AND distance is close to total
+          // For no flip-and-burn: complete when distance traveled reaches destination
+          if (useFlipAndBurn && propulsion.supportsFlipAndBurn) {
+            // Log when we're getting close to arrival
+            if (progress > 95) {
+              console.log('[Arrival Check] Speed:', currentSpeed.toFixed(2), 'km/s | Progress:', progress.toFixed(2), '% | Need: speed < 1 km/s AND progress > 99%');
+            }
+
+            // Complete when speed is very low (< 1 km/s) and we're close to destination (> 99% distance)
+            if (currentSpeed < 1 && distanceTraveled >= totalDistance * 0.99) {
+              console.log('[JOURNEY COMPLETE] Arrived with speed:', currentSpeed.toFixed(2), 'km/s at', progress.toFixed(2), '% distance');
+              completeJourney();
+            }
+          } else {
+            // No deceleration - complete when we reach the destination
+            if (distanceTraveled >= totalDistance * 0.999) {
+              console.log('[JOURNEY COMPLETE] Arrived at', progress.toFixed(2), '% distance (no flip-and-burn)');
+              completeJourney();
+            }
           }
         }
       }
@@ -179,31 +239,31 @@ function CameraController() {
           // Calculate direction from Earth to ship
           const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
 
-          // Position camera behind ship (opposite of Earth-to-ship direction)
-          const cameraDistance = 20; // Distance behind the ship
-          const cameraHeight = 8; // Height above the ship
+          // Position camera much closer behind ship (scaled to match smaller ship size)
+          const cameraDistance = 0.5; // Distance behind the ship (much closer now)
+          const cameraHeight = 0.2; // Height above the ship (much closer now)
           const initialCameraPos = shipPos.clone()
             .add(earthToShip.clone().multiplyScalar(-cameraDistance))
             .add(new Vector3(0, cameraHeight, 0));
 
+          // Set initial camera position
           camera.position.copy(initialCameraPos);
           controlsRef.current.target.copy(shipPos);
 
-          // Store the initial offset
-          cameraOffsetRef.current = camera.position.clone().sub(shipPos);
+          // Mark as initialized (set to a placeholder value)
+          cameraOffsetRef.current = new Vector3(0, 0, 0);
         }
+      } else {
+        // Track how much the ship has moved since last frame
+        const previousTarget = controlsRef.current.target.clone();
+        const shipMovement = shipPos.clone().sub(previousTarget);
+
+        // Move camera by the same amount to follow the ship
+        camera.position.add(shipMovement);
+
+        // Update target to current ship position
+        controlsRef.current.target.copy(shipPos);
       }
-
-      // Calculate how much the ship has moved
-      const previousTarget = controlsRef.current.target.clone();
-      const shipMovement = shipPos.clone().sub(previousTarget);
-
-      // Move both camera and target by the same amount to maintain relative position
-      camera.position.add(shipMovement);
-      controlsRef.current.target.copy(shipPos);
-
-      // Update the stored offset based on current camera position (accounts for user rotation/zoom)
-      cameraOffsetRef.current = camera.position.clone().sub(shipPos);
 
       controlsRef.current.update();
     } else if (cameraMode === 'planet-focus' && focusedPlanetName) {
@@ -259,7 +319,7 @@ function CameraController() {
       enablePan={controlsEnabled}
       enableZoom={controlsEnabled}
       enableRotate={controlsEnabled}
-      minDistance={0.25}
+      minDistance={0.01}
       maxDistance={2500}
       zoomSpeed={1.0}
       rotateSpeed={0.8}
@@ -380,7 +440,7 @@ export default function SolarSystem() {
         camera={{
           position: [0, 50, 100],
           fov: 60,
-          near: 0.1,
+          near: 0.001,
           far: 10000,
         }}
         style={{ background: '#000000' }}

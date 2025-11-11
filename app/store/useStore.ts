@@ -19,6 +19,7 @@ interface AppState {
   journeyStatus: JourneyStatus;
   origin: PlanetData | null;
   selectedPropulsion: PropulsionType | null;
+  useFlipAndBurn: boolean; // Whether to use flip-and-burn deceleration
   journeyStartTime: number; // Simulation time when journey started
   journeyElapsedTime: number; // Elapsed time in the journey (seconds)
   totalDistance: number; // Total journey distance in km
@@ -28,7 +29,8 @@ interface AppState {
   setJourneyStatus: (status: JourneyStatus) => void;
   setOrigin: (planet: PlanetData | null) => void;
   setSelectedPropulsion: (propulsion: PropulsionType | null) => void;
-  startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number, arrivalTime: number, destinationPosAtArrival: { x: number; z: number }) => void;
+  setUseFlipAndBurn: (use: boolean) => void;
+  startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number, arrivalTime: number, destinationPosAtArrival: { x: number; z: number }, useFlipAndBurn: boolean) => void;
   updateJourneyProgress: (delta: number) => void;
   completeJourney: () => void;
   resetJourney: () => void;
@@ -40,6 +42,7 @@ interface AppState {
   simulationTime: number; // Current simulation time in seconds
   setIsPaused: (paused: boolean) => void;
   setTimeSpeed: (speed: number) => void;
+  setSimulationTime: (time: number) => void;
   updateSimulationTime: (delta: number) => void;
 
   // Camera controls
@@ -54,10 +57,14 @@ interface AppState {
   showOrbits: boolean;
   showLabels: boolean;
   showTrails: boolean;
+  showFPS: boolean;
+  unitSystem: 'metric' | 'imperial';
   setScaleMode: (mode: ScaleMode) => void;
   toggleOrbits: () => void;
   toggleLabels: () => void;
   toggleTrails: () => void;
+  toggleFPS: () => void;
+  setUnitSystem: (system: 'metric' | 'imperial') => void;
 
   // UI state
   showWelcome: boolean;
@@ -85,6 +92,7 @@ export const useStore = create<AppState>((set) => ({
   journeyStatus: 'idle',
   origin: null,
   selectedPropulsion: null,
+  useFlipAndBurn: true, // Default to true for realistic arrivals
   journeyStartTime: 0,
   journeyElapsedTime: 0,
   totalDistance: 0,
@@ -104,12 +112,14 @@ export const useStore = create<AppState>((set) => ({
   }),
   setOrigin: (planet) => set({ origin: planet }),
   setSelectedPropulsion: (propulsion) => set({ selectedPropulsion: propulsion }),
-  startJourney: (origin, destination, propulsion, distance, arrivalTime, destinationPosAtArrival) =>
+  setUseFlipAndBurn: (use) => set({ useFlipAndBurn: use }),
+  startJourney: (origin, destination, propulsion, distance, arrivalTime, destinationPosAtArrival, useFlipAndBurn) =>
     set((state) => ({
       journeyStatus: 'traveling',
       origin,
       destination,
       selectedPropulsion: propulsion,
+      useFlipAndBurn,
       journeyStartTime: state.simulationTime,
       journeyElapsedTime: 0,
       totalDistance: distance,
@@ -135,6 +145,7 @@ export const useStore = create<AppState>((set) => ({
       origin: null,
       destination: null,
       selectedPropulsion: null,
+      useFlipAndBurn: true,
       journeyStartTime: 0,
       journeyElapsedTime: 0,
       totalDistance: 0,
@@ -147,6 +158,7 @@ export const useStore = create<AppState>((set) => ({
       origin: null,
       destination: null,
       selectedPropulsion: null,
+      useFlipAndBurn: true,
       journeyStartTime: 0,
       journeyElapsedTime: 0,
       totalDistance: 0,
@@ -161,10 +173,17 @@ export const useStore = create<AppState>((set) => ({
   simulationTime: 0,
   setIsPaused: (paused) => set({ isPaused: paused }),
   setTimeSpeed: (speed) => set({ timeSpeed: speed }),
+  setSimulationTime: (time) => set({ simulationTime: time }),
   updateSimulationTime: (delta) =>
-    set((state) => ({
-      simulationTime: state.isPaused ? state.simulationTime : state.simulationTime + delta * state.timeSpeed
-    })),
+    set((state) => {
+      // Cap delta to prevent large jumps (e.g., when tab is inactive)
+      const cappedDelta = Math.min(delta, 0.1);
+      const increment = cappedDelta * state.timeSpeed;
+
+      return {
+        simulationTime: state.isPaused ? state.simulationTime : state.simulationTime + increment
+      };
+    }),
 
   // Camera controls
   cameraMode: 'free',
@@ -178,10 +197,14 @@ export const useStore = create<AppState>((set) => ({
   showOrbits: true,
   showLabels: true,
   showTrails: false,
+  showFPS: false,
+  unitSystem: 'metric',
   setScaleMode: (mode) => set({ scaleMode: mode }),
   toggleOrbits: () => set((state) => ({ showOrbits: !state.showOrbits })),
   toggleLabels: () => set((state) => ({ showLabels: !state.showLabels })),
   toggleTrails: () => set((state) => ({ showTrails: !state.showTrails })),
+  toggleFPS: () => set((state) => ({ showFPS: !state.showFPS })),
+  setUnitSystem: (system) => set({ unitSystem: system }),
 
   // UI state
   showWelcome: true,
