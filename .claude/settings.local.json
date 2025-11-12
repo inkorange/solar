@@ -13,7 +13,8 @@
       "Bash(claude mcp get:*)",
       "WebFetch(domain:nssdc.gsfc.nasa.gov)",
       "Bash(lsof:*)",
-      "Bash(xargs kill -9)"
+      "Bash(xargs kill -9)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []

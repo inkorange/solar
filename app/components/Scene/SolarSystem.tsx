@@ -79,21 +79,21 @@ function SceneUpdater() {
             });
           }
 
-          // For flip-and-burn: complete when speed reaches near 0 AND distance is close to total
+          // For flip-and-burn: complete when speed reaches near 0 AND distance equals total
           // For no flip-and-burn: complete when distance traveled reaches destination
           if (useFlipAndBurn && propulsion.supportsFlipAndBurn) {
             // Log when we're getting close to arrival
             if (progress > 95) {
-              console.log('[Arrival Check] Speed:', currentSpeed.toFixed(2), 'km/s | Progress:', progress.toFixed(2), '% | Need: speed < 1 km/s AND progress > 99%');
+              console.log('[Arrival Check] Speed:', currentSpeed.toFixed(2), 'km/s | Progress:', progress.toFixed(2), '% | Need: speed < 0.5 km/s AND progress >= 99.9%');
             }
 
-            // Complete when speed is very low (< 1 km/s) and we're close to destination (> 99% distance)
-            if (currentSpeed < 1 && distanceTraveled >= totalDistance * 0.99) {
+            // Complete when speed is very low (< 0.5 km/s) and we've reached destination (>= 99.9% distance)
+            if (currentSpeed < 0.5 && distanceTraveled >= totalDistance * 0.999) {
               console.log('[JOURNEY COMPLETE] Arrived with speed:', currentSpeed.toFixed(2), 'km/s at', progress.toFixed(2), '% distance');
               completeJourney();
             }
           } else {
-            // No deceleration - complete when we reach the destination
+            // No deceleration - complete when we reach the destination (>= 99.9%)
             if (distanceTraveled >= totalDistance * 0.999) {
               console.log('[JOURNEY COMPLETE] Arrived at', progress.toFixed(2), '% distance (no flip-and-burn)');
               completeJourney();
