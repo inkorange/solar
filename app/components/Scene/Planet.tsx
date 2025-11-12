@@ -18,8 +18,6 @@ export default function Planet({ data }: PlanetProps) {
   const meshRef = useRef<Mesh | null>(null);
   const groupRef = useRef<Group | null>(null);
   const [hovered, setHovered] = useState(false);
-  const [isNearCamera, setIsNearCamera] = useState(true);
-  const { camera } = useThree();
 
   const { selectedPlanet, setSelectedPlanet, scaleMode, showLabels, simulationTime, timeSpeed, isPaused, journeyStatus, showWelcome } = useStore();
   const isSelected = selectedPlanet?.name === data.name;
@@ -61,13 +59,6 @@ export default function Planet({ data }: PlanetProps) {
       groupRef.current.position.x = orbitalPosition.x;
       groupRef.current.position.y = orbitalPosition.y;
       groupRef.current.position.z = orbitalPosition.z;
-
-      // Check distance from camera to planet for label visibility
-      // 2 AU threshold in scaled units
-      const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-      const maxLabelDistance = 2 * scaleFactor.DISTANCE; // 2 AU in scene units
-      const distanceToCamera = camera.position.distanceTo(groupRef.current.position);
-      setIsNearCamera(distanceToCamera <= maxLabelDistance);
     }
   });
 
@@ -132,8 +123,8 @@ export default function Planet({ data }: PlanetProps) {
         </mesh>
       )}
 
-      {/* Label - only show if within 2 AU of camera */}
-      {showLabels && !showWelcome && journeyStatus !== 'selecting-propulsion' && isNearCamera && (
+      {/* Label - always show for planets when labels are enabled */}
+      {showLabels && !showWelcome && journeyStatus !== 'selecting-propulsion' && (
         <Html
           position={[0, planetSize * 1.8, 0]}
           center

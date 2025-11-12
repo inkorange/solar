@@ -14,7 +14,7 @@ interface EngineTrailProps {
 
 const PARTICLE_COUNT = 350;
 const PARTICLE_LIFETIME = 1.0; // seconds
-const SHIP_SCALE = 0.05; // Match spaceship scale
+const SHIP_SCALE = 0.0125; // Match spaceship scale (75% smaller than before)
 
 export default function EngineTrail({ propulsion, isActive, flightPhase }: EngineTrailProps) {
   // Only show engine effects when accelerating or decelerating
@@ -28,26 +28,27 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
   const { timeSpeed } = useStore();
 
   // Configure particle system based on propulsion type
+  // Sizes are 50% smaller than before (additional reduction beyond SHIP_SCALE change)
   const particleConfig = useMemo(() => {
     if (!propulsion) {
-      return { size: 0.15 * SHIP_SCALE, speed: 1.5 * SHIP_SCALE };
+      return { size: 0.075 * SHIP_SCALE, speed: 1.5 * SHIP_SCALE };
     }
 
     switch (propulsion) {
       case 'chemical-rocket':
-        return { size: 0.2 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.1 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'ion-thruster':
-        return { size: 0.12 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
+        return { size: 0.06 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
       case 'solar-sail':
         return { size: 0, speed: 0 }; // No visible exhaust
       case 'nuclear-thermal':
-        return { size: 0.18 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.09 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'antimatter':
-        return { size: 0.25 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.125 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'warp-drive':
-        return { size: 0.15 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.075 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       default:
-        return { size: 0.15 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
+        return { size: 0.075 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
     }
   }, [propulsion]);
 

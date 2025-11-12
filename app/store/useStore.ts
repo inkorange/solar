@@ -144,7 +144,7 @@ export const useStore = create<AppState>((set) => ({
         };
       }
 
-      // Calculate camera position for the destination planet (same logic as Controls.tsx)
+      // Calculate camera position for the destination planet (same logic as Navigation.tsx)
       const scaleFactor = state.scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
       const position = calculateEllipticalOrbitPosition(
         state.simulationTime,
@@ -159,22 +159,32 @@ export const useStore = create<AppState>((set) => ({
       const fov = 60;
       const fovRadians = (fov * Math.PI) / 180;
 
+      // Adjust camera distance based on planet size with adaptive viewport fill
       const jupiterDiameter = (142984 / 12742) * scaleFactor.SIZE * 5 * 2;
       const sizeRatio = Math.min(planetDiameter / jupiterDiameter, 1);
-      const distanceMultiplier = 1 + (39 * Math.pow(1 - sizeRatio, 1.5));
-      const baseDistance = planetDiameter / (0.3 * 2 * Math.tan(fovRadians / 2));
+
+      // Exponential scaling for better small planet zoom
+      const distanceMultiplier = 1 + (20 * Math.pow(1 - sizeRatio, 1.2));
+
+      // Adaptive viewport fill: smaller planets fill less, larger planets fill more
+      const viewportFill = 0.15 + (0.1 * sizeRatio); // 0.15 for small, 0.25 for Jupiter
+      const baseDistance = planetDiameter / (viewportFill * 2 * Math.tan(fovRadians / 2));
+
+      // Apply inverse multiplier (higher multiplier = closer camera)
       let cameraDistance = baseDistance / distanceMultiplier;
 
+      // Safety constraint: adaptive minimum distance
       const visualRadius = state.destination.hasRings && state.destination.ringData
         ? planetRadius * state.destination.ringData.outerRadiusRatio
         : planetRadius;
-      const minSafeDistance = visualRadius * 2;
+      const safetyMultiplier = 3 + (3 * (1 - sizeRatio)); // 3x for large, 6x for small
+      const minSafeDistance = visualRadius * safetyMultiplier;
       cameraDistance = Math.max(cameraDistance, minSafeDistance);
 
       const angle = Math.PI / 4;
       const cameraPos: [number, number, number] = [
         position.x + cameraDistance * Math.cos(angle),
-        cameraDistance * 0.3,
+        position.y + cameraDistance * 0.3,
         position.z + cameraDistance * Math.sin(angle),
       ];
 

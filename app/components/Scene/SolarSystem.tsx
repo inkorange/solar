@@ -246,10 +246,10 @@ function CameraController() {
           const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
 
           // Position camera close behind ship so it fills ~25% of screen
-          // Ship is roughly 0.1 units long (SHIP_SCALE * 2)
+          // Ship is roughly 0.025 units long (SHIP_SCALE 0.0125 * 2)
           // FOV is 60 degrees, so for 25% screen fill:
           // distance = (shipLength / 0.25) / (2 * tan(FOV/2))
-          const shipLength = 0.1;
+          const shipLength = 0.025;
           const fov = 60 * (Math.PI / 180);
           const targetScreenFill = 0.25;
           const cameraDistance = (shipLength / targetScreenFill) / (2 * Math.tan(fov / 2));
@@ -386,18 +386,24 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
   const [loadedCount, setLoadedCount] = useState(0);
   const totalItems = useRef(0);
   const hasCompleted = useRef(false);
+  const frameCount = useRef(0);
 
   useEffect(() => {
-    // Count total items to load (8 planets with textures)
-    totalItems.current = PLANETS.filter(p => p.texture).length;
+    // Count total items to load: planets with textures (9: Mercury-Pluto) + Sun (1) = 10 total
+    totalItems.current = PLANETS.filter(p => p.texture).length + 1; // +1 for Sun
   }, []);
 
   useFrame(() => {
-    // Check if all items are loaded and first frame has rendered
-    if (!hasCompleted.current && loadedCount >= totalItems.current && totalItems.current > 0) {
-      hasCompleted.current = true;
-      // Small delay to ensure first render is complete
-      setTimeout(() => onLoadComplete(), 100);
+    // Only start counting frames after all textures are loaded
+    if (loadedCount >= totalItems.current && totalItems.current > 0) {
+      frameCount.current += 1;
+
+      // Wait for at least 60 frames (approximately 1 second at 60fps) after textures load
+      // This ensures the scene is fully rendered and stable
+      if (!hasCompleted.current && frameCount.current >= 60) {
+        hasCompleted.current = true;
+        onLoadComplete();
+      }
     }
   });
 
@@ -419,41 +425,51 @@ export default function SolarSystem() {
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      {/* Loading indicator overlay */}
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000000' }}>
+      {/* Loading indicator overlay with backdrop */}
       {isLoading && (
         <div
           style={{
             position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            color: 'white',
-            fontFamily: 'var(--font-geist-sans)',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             zIndex: 1000,
           }}
         >
           <div
             style={{
-              width: '60px',
-              height: '60px',
-              border: '3px solid rgba(96, 165, 250, 0.2)',
-              borderTop: '3px solid #60a5fa',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 20px',
+              textAlign: 'center',
+              color: 'white',
+              fontFamily: 'var(--font-geist-sans)',
             }}
-          />
-          <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading Solar System...</div>
-          <style>
-            {`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}
-          </style>
+          >
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                border: '3px solid rgba(96, 165, 250, 0.2)',
+                borderTop: '3px solid #60a5fa',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 20px',
+              }}
+            />
+            <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading Solar System...</div>
+            <style>
+              {`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}
+            </style>
+          </div>
         </div>
       )}
 

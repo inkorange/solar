@@ -137,8 +137,8 @@ export default function Spaceship() {
     return null;
   }
 
-  // Scale factor to make spaceship much smaller (5% of original size)
-  const SHIP_SCALE = 0.05;
+  // Scale factor to make spaceship much smaller (1.25% of original size - 75% smaller than previous 5%)
+  const SHIP_SCALE = 0.0125;
 
   return (
     <group ref={groupRef}>
