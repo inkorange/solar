@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { Mesh, TextureLoader } from 'three';
 import { SUN_DATA, SCALE_FACTORS } from '@/app/data/planets';
@@ -14,12 +14,15 @@ export default function Sun() {
   const texture = useLoader(TextureLoader, SUN_DATA.texture || '/textures/sun.jpg');
   const hasTexture = Boolean(SUN_DATA.texture);
 
-  // Dispatch event when texture is loaded (for loading tracker)
-  const [hasDispatchedLoad, setHasDispatchedLoad] = useState(false);
-  if (texture && SUN_DATA.texture && !hasDispatchedLoad) {
-    setHasDispatchedLoad(true);
-    window.dispatchEvent(new CustomEvent('planet-texture-loaded'));
-  }
+  // Dispatch event when texture is loaded (for loading tracker) - use useEffect to avoid re-renders
+  const hasDispatchedRef = useRef(false);
+  useEffect(() => {
+    if (texture && SUN_DATA.texture && !hasDispatchedRef.current) {
+      hasDispatchedRef.current = true;
+      console.log('[Sun] Dispatching load event');
+      window.dispatchEvent(new CustomEvent('planet-texture-loaded', { detail: { name: 'Sun' } }));
+    }
+  }, [texture]);
 
   // Calculate Sun size using same formula as planets (relative to Earth)
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
