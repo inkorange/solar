@@ -1,5 +1,8 @@
 'use client';
 
+// Import texture preloader to start downloads immediately
+import './lib/texture-preloader';
+
 import SolarSystem from './components/Scene/SolarSystem';
 import Navigation from './components/UI/Navigation';
 import Controls from './components/UI/Controls';
