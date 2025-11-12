@@ -63,6 +63,17 @@ export default function Controls() {
   }, []);
 
   const handleCameraModeChange = (mode: CameraMode) => {
+    // If clicking the same mode (e.g., re-clicking "Follow Ship"), force a reset
+    // by briefly switching to 'free' mode and then back
+    if (mode === cameraMode) {
+      setCameraMode('free');
+      // Use setTimeout to ensure the mode change is processed
+      setTimeout(() => {
+        setCameraMode(mode);
+      }, 0);
+      return;
+    }
+
     // If switching to planet-focus mode and there's a selected planet,
     // recalculate and set the camera position (same logic as Navigation.tsx)
     if (mode === 'planet-focus' && selectedPlanet) {

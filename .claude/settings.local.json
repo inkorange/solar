@@ -7,7 +7,13 @@
       "WebFetch(domain:api.le-systeme-solaire.net)",
       "WebSearch",
       "WebFetch(domain:ssd.jpl.nasa.gov)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(claude mcp add --transport stdio context7 -- npx -y @upstash/context7-mcp --api-key ctx7sk-b93230e7-8f7d-4859-bd22-daf9fc477258)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude mcp get:*)",
+      "WebFetch(domain:nssdc.gsfc.nasa.gov)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)"
     ],
     "deny": [],
     "ask": []

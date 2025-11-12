@@ -70,8 +70,8 @@ export default function Orbit({ planetData, color = '#ffffff', opacity = 0.2 }: 
     );
 
     // Calculate distance from camera to planet
-  // calculateEllipticalOrbitPosition returns { x, z } (y is omitted/assumed 0)
-  const distance = camera.position.distanceTo(new Vector3(planetPos.x, 0, planetPos.z));
+    // calculateEllipticalOrbitPosition returns { x, y, z } (including y for inclined orbits)
+    const distance = camera.position.distanceTo(new Vector3(planetPos.x, planetPos.y, planetPos.z));
 
     // Apply atmospheric perspective: closer = more opaque, farther = more transparent
     // Using a formula that gradually reduces opacity based on distance
@@ -95,6 +95,10 @@ export default function Orbit({ planetData, color = '#ffffff', opacity = 0.2 }: 
   });
 
   if (!showOrbits) return null;
+
+  // Hide orbits for distant dwarf planets (except Pluto) to reduce clutter
+  const hiddenOrbits = ['Eris', 'Haumea', 'Makemake'];
+  if (hiddenOrbits.includes(planetData.name)) return null;
 
   return (
     <Line

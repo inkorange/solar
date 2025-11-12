@@ -118,9 +118,9 @@ function MoonMesh({
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
   const moonSize = (moonData.diameter / 12742) * scaleFactor.SIZE * 5; // Relative to Earth
 
-  // Distance threshold for showing labels (in scene units)
-  // Adjust this value to control when labels appear
-  const LABEL_DISTANCE_THRESHOLD = 100;
+  // Distance threshold for showing labels: 2 AU in scene units
+  // This matches the planet label distance threshold
+  const LABEL_DISTANCE_THRESHOLD = 2 * scaleFactor.DISTANCE;
 
   // Convert distance from km to scene units
   // Moon distances need separate scaling from planetary orbits
@@ -129,21 +129,35 @@ function MoonMesh({
 
   // Calculate moon's position in orbit around parent planet
   const orbitalPosition = useMemo(() => {
-    // Only animate Earth's moon for now, keep others static
-    if (moonData.name !== 'Moon') {
-      // Static position for other moons (initial position)
-      return {
-        x: orbitRadius,
-        z: 0,
-      };
-    }
-
-    // Earth's moon - full orbital animation
     const orbitalPeriodSeconds = moonData.orbitalPeriod * 24 * 60 * 60;
-    // Handle retrograde orbits (inclination > 90°) by reversing direction
+
+    // Calculate initial orbital angle based on a reference epoch
+    // Using J2000 epoch (January 1, 2000, 12:00 TT) as reference
+    // This is a simplified calculation - real ephemeris data would be more accurate
+    const j2000 = new Date('2000-01-01T12:00:00Z').getTime() / 1000; // seconds
+    const now = Date.now() / 1000; // current time in seconds
+    const elapsedSinceJ2000 = now - j2000;
+
+    // Calculate how many complete orbits have occurred since J2000
+    const orbitsCompleted = elapsedSinceJ2000 / orbitalPeriodSeconds;
+
+    // Get the fractional part (current position in orbit, 0 to 1)
+    // This represents where the moon actually is in its orbit right now
+    const orbitalPhase = orbitsCompleted % 1;
+
+    // Calculate current angle (combining real epoch position and simulation time)
     const isRetrograde = moonData.orbitalInclination > 90;
     const direction = isRetrograde ? -1 : 1;
-    const angle = direction * (simulationTime / orbitalPeriodSeconds) * Math.PI * 2;
+
+    // If we have a mean anomaly at epoch, use it; otherwise use orbital phase
+    const epochAngle = moonData.meanAnomalyAtEpoch
+      ? (moonData.meanAnomalyAtEpoch / 360) * Math.PI * 2  // Convert degrees to radians
+      : 0;
+
+    // Base angle from J2000 epoch + simulation time advancement
+    const baseAngle = epochAngle + (orbitalPhase * Math.PI * 2);
+    const simAngle = (simulationTime / orbitalPeriodSeconds) * Math.PI * 2;
+    const angle = direction * (baseAngle + simAngle);
 
     return {
       x: Math.cos(angle) * orbitRadius,

@@ -307,6 +307,136 @@ export const PLANETS: PlanetData[] = [
       "First planet found by mathematical prediction",
       "Takes 165 Earth years to complete one orbit"
     ]
+  },
+  {
+    name: "Pluto",
+    type: "Dwarf Planet",
+    color: "#d4c5b0",
+    texture: "/textures/pluto.jpg",
+    diameter: 2376,
+    mass: 0.0022,
+    gravity: 0.62,
+    distanceFromSun: 39.48,
+    orbitalPeriod: 90560, // ~248 Earth years
+    orbitalSpeed: 4.7,
+    orbitalEccentricity: 0.2488,
+    orbitalInclination: 17.14,
+
+    // J2000.0 orbital elements (NASA NSSDCA)
+    meanLongitudeJ2000: 238.929, // Longitude of perihelion adjusted
+    meanLongitudeRate: 145.546, // ~248 year period
+
+    rotationPeriod: -6.39, // Retrograde rotation, 6.39 Earth days
+    axialTilt: 122.5,
+    atmosphere: ["N2", "CH4", "CO (trace)"],
+    moons: 5,
+    hasRings: false,
+    facts: [
+      "Classified as a dwarf planet since 2006",
+      "Has a highly elliptical and inclined orbit",
+      "Surface is mostly nitrogen ice with methane and carbon monoxide",
+      "Shares a binary system with its largest moon, Charon",
+      "Takes 248 Earth years to orbit the Sun"
+    ]
+  }
+];
+
+// Additional dwarf planets beyond Pluto
+export const DWARF_PLANETS: PlanetData[] = [
+  {
+    name: "Eris",
+    type: "Dwarf Planet",
+    color: "#e8e8e8",
+    diameter: 2326,
+    mass: 0.0027,
+    gravity: 0.82,
+    distanceFromSun: 67.78, // Average distance
+    orbitalPeriod: 205500, // ~562.6 Earth years
+    orbitalSpeed: 3.4,
+    orbitalEccentricity: 0.4323,
+    orbitalInclination: 43.75,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 205.989,
+    meanLongitudeRate: 64.010,
+
+    rotationPeriod: 1.08, // ~25.9 hours
+    axialTilt: 78.0,
+    atmosphere: ["None detected"],
+    moons: 1,
+    hasRings: false,
+    facts: [
+      "Most massive known dwarf planet",
+      "Discovery in 2005 led to Pluto's reclassification",
+      "Extremely distant and cold (-231°C)",
+      "Has a small moon named Dysnomia",
+      "Takes 562 Earth years to orbit the Sun"
+    ]
+  },
+  {
+    name: "Haumea",
+    type: "Dwarf Planet",
+    color: "#d0c8c0",
+    diameter: 1632, // Mean diameter of elongated body
+    mass: 0.0007,
+    gravity: 0.44,
+    distanceFromSun: 43.13, // Average distance
+    orbitalPeriod: 102560, // ~280.9 Earth years
+    orbitalSpeed: 4.5,
+    orbitalEccentricity: 0.1999,
+    orbitalInclination: 28.21,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 218.205,
+    meanLongitudeRate: 128.405,
+
+    rotationPeriod: 0.163, // ~3.9 hours - fastest rotating large object
+    axialTilt: 126.0,
+    atmosphere: ["None detected"],
+    moons: 2,
+    hasRings: true,
+    ringData: {
+      innerRadiusRatio: 2.7,
+      outerRadiusRatio: 2.9,
+      opacity: 0.05,
+    },
+    facts: [
+      "Elongated shape due to rapid rotation",
+      "Fastest rotating large object in the solar system",
+      "Has two known moons: Hi'iaka and Namaka",
+      "Has a faint ring system discovered in 2017",
+      "Named after Hawaiian goddess of childbirth"
+    ]
+  },
+  {
+    name: "Makemake",
+    type: "Dwarf Planet",
+    color: "#d89b70",
+    diameter: 1430,
+    mass: 0.00067,
+    gravity: 0.47,
+    distanceFromSun: 45.79, // Average distance
+    orbitalPeriod: 111300, // ~304.7 Earth years
+    orbitalSpeed: 4.4,
+    orbitalEccentricity: 0.1658,
+    orbitalInclination: 29.03,
+
+    // J2000.0 orbital elements (NASA JPL)
+    meanLongitudeJ2000: 213.871,
+    meanLongitudeRate: 118.375,
+
+    rotationPeriod: 0.95, // ~22.8 hours
+    axialTilt: 79.0,
+    atmosphere: ["None detected"],
+    moons: 1,
+    hasRings: false,
+    facts: [
+      "Third largest dwarf planet",
+      "Named after Rapa Nui creator deity",
+      "Surface is likely covered in methane and ethane ices",
+      "Has one known moon named MK 2",
+      "Discovered in 2005, shortly after Eris"
+    ]
   }
 ];
 
@@ -332,14 +462,14 @@ export const SCALE_FACTORS = {
   // For visual mode (adjusted for better viewing)
   VISUAL: {
     DISTANCE: 50, // Multiplier for orbital distances (planets around sun)
-    MOON_DISTANCE: 150, // Multiplier for moon orbits around planets
+    MOON_DISTANCE: 800, // Multiplier for moon orbits around planets (increased to prevent moons clipping into planets)
     SIZE: 0.01, // Multiplier for planet sizes
     SUN_SIZE: 5, // Fixed sun size for visibility
   },
   // For realistic mode (true to scale)
   REALISTIC: {
     DISTANCE: 100,
-    MOON_DISTANCE: 200, // Multiplier for moon orbits in realistic mode
+    MOON_DISTANCE: 1000, // Multiplier for moon orbits in realistic mode (increased to prevent clipping)
     SIZE: 0.001,
     SUN_SIZE: 10,
   }

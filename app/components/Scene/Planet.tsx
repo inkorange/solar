@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState, useMemo, useEffect } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useRef, useState, useMemo } from 'react';
+import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Mesh, TextureLoader, Group } from 'three';
 import { PlanetData, SCALE_FACTORS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
@@ -27,12 +27,12 @@ export default function Planet({ data }: PlanetProps) {
   const loadedTexture = useLoader(TextureLoader, data.texture ?? placeholderDataUrl);
   const texture = data.texture ? loadedTexture : null;
 
-  // Dispatch event when texture is loaded
-  useEffect(() => {
-    if (texture && data.texture) {
-      window.dispatchEvent(new CustomEvent('planet-texture-loaded'));
-    }
-  }, [texture, data.texture]);
+  // Dispatch event when texture is loaded (for loading tracker)
+  const [hasDispatchedLoad, setHasDispatchedLoad] = useState(false);
+  if (texture && data.texture && !hasDispatchedLoad) {
+    setHasDispatchedLoad(true);
+    window.dispatchEvent(new CustomEvent('planet-texture-loaded'));
+  }
 
   // Calculate scaled values based on scale mode
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
@@ -54,9 +54,10 @@ export default function Planet({ data }: PlanetProps) {
       meshRef.current.rotation.y += delta * rotationSpeed * timeSpeed * (data.rotationPeriod < 0 ? -1 : 1);
     }
 
-    // Update group position for orbital motion
+    // Update group position for orbital motion (including y for inclined orbits)
     if (groupRef.current) {
       groupRef.current.position.x = orbitalPosition.x;
+      groupRef.current.position.y = orbitalPosition.y;
       groupRef.current.position.z = orbitalPosition.z;
     }
   });
@@ -67,14 +68,16 @@ export default function Planet({ data }: PlanetProps) {
 
   return (
     <group ref={groupRef}>
-      <mesh
-        ref={meshRef}
-        onClick={handleClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        castShadow
-      >
-        <sphereGeometry args={[planetSize, 32, 32]} />
+      {/* Apply axial tilt to this group so rotation happens around tilted axis */}
+      <group rotation={[0, 0, (data.axialTilt * Math.PI) / 180]}>
+        <mesh
+          ref={meshRef}
+          onClick={handleClick}
+          onPointerOver={() => setHovered(true)}
+          onPointerOut={() => setHovered(false)}
+          castShadow
+        >
+          <sphereGeometry args={[planetSize, 32, 32]} />
         {texture ? (
           <meshStandardMaterial
             map={texture}
@@ -105,13 +108,14 @@ export default function Planet({ data }: PlanetProps) {
         <Atmosphere
           radius={planetSize}
           color={data.color}
-          opacity={data.type === 'Gas Giant' ? 0.25 : 
+          opacity={data.type === 'Gas Giant' ? 0.25 :
                   data.type === 'Ice Giant' ? 0.2 :
                   data.name === 'Venus' ? 0.3 : 0.15}
         />
       )}
+      </group>{/* Close tilted group - planet, rings, and atmosphere are tilted */}
 
-      {/* Hover indicator */}
+      {/* Hover indicator - NOT tilted, stays upright */}
       {hovered && !isSelected && (
         <mesh>
           <ringGeometry args={[planetSize * 1.5, planetSize * 1.6, 64]} />
@@ -119,7 +123,7 @@ export default function Planet({ data }: PlanetProps) {
         </mesh>
       )}
 
-      {/* Label */}
+      {/* Label - always show for planets when labels are enabled */}
       {showLabels && !showWelcome && journeyStatus !== 'selecting-propulsion' && (
         <Html
           position={[0, planetSize * 1.8, 0]}

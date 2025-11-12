@@ -21,7 +21,7 @@ import Spaceship from './Spaceship';
 import Moon from './Moon';
 import Asteroid from './Asteroid';
 import AsteroidBelt from './AsteroidBelt';
-import { PLANETS, SCALE_FACTORS } from '@/app/data/planets';
+import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
 import { getMoonsForPlanet } from '@/app/data/moons';
 import { ASTEROIDS } from '@/app/data/asteroids';
 import { useStore } from '@/app/store/useStore';
@@ -131,9 +131,13 @@ function CameraController() {
   // Store camera offset when planet-focus or follow-spaceship mode is activated
   const cameraOffsetRef = useRef<Vector3 | null>(null);
 
+  // Track previous ship position for delta calculation
+  const previousShipPosRef = useRef<Vector3 | null>(null);
+
   // Reset camera offset when mode changes
   useEffect(() => {
     cameraOffsetRef.current = null;
+    previousShipPosRef.current = null;
   }, [cameraMode]);
 
   // Animation state
@@ -164,8 +168,9 @@ function CameraController() {
     if (targetKey === lastTargetRef.current) return; // Prevent re-trigger
     lastTargetRef.current = targetKey;
 
-    // Get planet position for controls target
-    const planet = PLANETS.find(p => p.name === focusedPlanetName);
+    // Get planet position for controls target (check both PLANETS and DWARF_PLANETS)
+    const allBodies = [...PLANETS, ...DWARF_PLANETS];
+    const planet = allBodies.find(p => p.name === focusedPlanetName);
     if (!planet) return;
 
     const { scaleMode, simulationTime } = useStore.getState();
@@ -179,7 +184,7 @@ function CameraController() {
       startPos: camera.position.clone(),
       targetPos: new Vector3(...cameraTarget),
       startLookAt: controlsRef.current.target.clone(),
-      targetLookAt: new Vector3(planetPos.x, 0, planetPos.z),
+      targetLookAt: new Vector3(planetPos.x, planetPos.y, planetPos.z),
     };
   }, [cameraTarget, focusedPlanetName, camera, cameraMode, spaceshipPosition]);
 
@@ -207,12 +212,13 @@ function CameraController() {
 
         // Initialize camera offset for planet-focus mode after animation completes
         if (cameraMode === 'planet-focus' && focusedPlanetName) {
-          const planet = PLANETS.find(p => p.name === focusedPlanetName);
+          const allBodies = [...PLANETS, ...DWARF_PLANETS];
+          const planet = allBodies.find(p => p.name === focusedPlanetName);
           if (planet) {
             const { scaleMode, simulationTime } = useStore.getState();
             const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
             const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
-            const planetPosVec = new Vector3(planetPos.x, 0, planetPos.z);
+            const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
 
             // Set the camera offset based on final animated position
             cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
@@ -226,60 +232,75 @@ function CameraController() {
     if (cameraMode === 'follow-spaceship') {
       const shipPos = new Vector3(spaceshipPosition[0], spaceshipPosition[1], spaceshipPosition[2]);
 
-      // Initialize camera position behind the ship from Earth's perspective on first entry
+      // Initialize camera offset on first entry
       if (!cameraOffsetRef.current) {
-        // Get Earth's position
+        // Get Earth's position for initial camera angle
         const earth = PLANETS.find(p => p.name === 'Earth');
         if (earth) {
           const { scaleMode, simulationTime } = useStore.getState();
           const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
           const earthPos = calculateEllipticalOrbitPosition(simulationTime, earth, scaleFactor.DISTANCE);
-          const earthPosVec = new Vector3(earthPos.x, 0, earthPos.z);
+          const earthPosVec = new Vector3(earthPos.x, earthPos.y, earthPos.z);
 
-          // Calculate direction from Earth to ship
+          // Calculate direction from Earth to ship (ship's travel direction)
           const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
 
-          // Position camera much closer behind ship (scaled to match smaller ship size)
-          const cameraDistance = 0.5; // Distance behind the ship (much closer now)
-          const cameraHeight = 0.2; // Height above the ship (much closer now)
-          const initialCameraPos = shipPos.clone()
-            .add(earthToShip.clone().multiplyScalar(-cameraDistance))
+          // Position camera close behind ship so it fills ~25% of screen
+          // Ship is roughly 0.025 units long (SHIP_SCALE 0.0125 * 2)
+          // FOV is 60 degrees, so for 25% screen fill:
+          // distance = (shipLength / 0.25) / (2 * tan(FOV/2))
+          const shipLength = 0.025;
+          const fov = 60 * (Math.PI / 180);
+          const targetScreenFill = 0.25;
+          const cameraDistance = (shipLength / targetScreenFill) / (2 * Math.tan(fov / 2));
+          const cameraHeight = cameraDistance * 0.15; // Slightly above (15% of distance)
+
+          const offsetPos = earthToShip.clone().multiplyScalar(-cameraDistance)
             .add(new Vector3(0, cameraHeight, 0));
 
-          // Set initial camera position
-          camera.position.copy(initialCameraPos);
-          controlsRef.current.target.copy(shipPos);
+          // Store the offset relative to ship position
+          cameraOffsetRef.current = offsetPos;
 
-          // Mark as initialized (set to a placeholder value)
-          cameraOffsetRef.current = new Vector3(0, 0, 0);
+          // Set initial camera position and look-at target
+          camera.position.copy(shipPos.clone().add(offsetPos));
+          controlsRef.current.target.copy(shipPos); // Initially look at ship
+          controlsRef.current.update();
         }
-      } else {
-        // Track how much the ship has moved since last frame
-        const previousTarget = controlsRef.current.target.clone();
-        const shipMovement = shipPos.clone().sub(previousTarget);
-
-        // Move camera by the same amount to follow the ship
-        camera.position.add(shipMovement);
-
-        // Update target to current ship position
-        controlsRef.current.target.copy(shipPos);
       }
 
-      controlsRef.current.update();
+      // Track ship movement and move camera/target together to maintain relative position
+      if (cameraOffsetRef.current) {
+        if (previousShipPosRef.current) {
+          // Calculate how much the ship has moved since last frame
+          const shipMovement = shipPos.clone().sub(previousShipPosRef.current);
+
+          // Move both camera and target by the same amount
+          // This keeps the camera at a fixed position relative to ship
+          // while allowing user to freely rotate/look around
+          camera.position.add(shipMovement);
+          controlsRef.current.target.add(shipMovement);
+        }
+
+        // Store current ship position for next frame
+        previousShipPosRef.current = shipPos.clone();
+        controlsRef.current.update();
+      }
     } else if (cameraMode === 'planet-focus' && focusedPlanetName) {
       // Planet focus mode - camera follows planet while maintaining rotation ability
-      const planet = PLANETS.find(p => p.name === focusedPlanetName);
+      const allBodies = [...PLANETS, ...DWARF_PLANETS];
+      const planet = allBodies.find(p => p.name === focusedPlanetName);
       if (planet) {
         const { scaleMode, simulationTime } = useStore.getState();
         const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
         const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
-        const planetPosVec = new Vector3(planetPos.x, 0, planetPos.z);
+        const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
 
         // Initialize offset on first frame with appropriate zoom based on planet size
         if (!cameraOffsetRef.current) {
           const planetSize = (planet.diameter / 12742) * scaleFactor.SIZE * 5;
-          const cameraDistance = Math.max(planetSize * 8, 15); // At least 8x planet radius, minimum 15 units
-          const cameraHeight = planetSize * 3;
+          // Increase distance multiplier to keep planets at ~50% viewport size
+          const cameraDistance = Math.max(planetSize * 50, 100); // At least 50x planet radius, minimum 100 units
+          const cameraHeight = Math.max(planetSize * 15, 40); // Higher camera for better view
 
           // Position camera offset from planet
           const initialCameraPos = planetPosVec.clone()
@@ -347,7 +368,7 @@ function PlanetWithMoons({ planetData }: { planetData: typeof PLANETS[0] }) {
       scaleFactor.DISTANCE
     );
 
-    return new Vector3(position.x, 0, position.z);
+    return new Vector3(position.x, position.y, position.z);
   }, [simulationTime, scaleMode, planetData]);
 
   return (
@@ -365,18 +386,24 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
   const [loadedCount, setLoadedCount] = useState(0);
   const totalItems = useRef(0);
   const hasCompleted = useRef(false);
+  const frameCount = useRef(0);
 
   useEffect(() => {
-    // Count total items to load (8 planets with textures)
-    totalItems.current = PLANETS.filter(p => p.texture).length;
+    // Count total items to load: planets with textures (9: Mercury-Pluto) + Sun (1) = 10 total
+    totalItems.current = PLANETS.filter(p => p.texture).length + 1; // +1 for Sun
   }, []);
 
   useFrame(() => {
-    // Check if all items are loaded and first frame has rendered
-    if (!hasCompleted.current && loadedCount >= totalItems.current && totalItems.current > 0) {
-      hasCompleted.current = true;
-      // Small delay to ensure first render is complete
-      setTimeout(() => onLoadComplete(), 100);
+    // Only start counting frames after all textures are loaded
+    if (loadedCount >= totalItems.current && totalItems.current > 0) {
+      frameCount.current += 1;
+
+      // Wait for at least 60 frames (approximately 1 second at 60fps) after textures load
+      // This ensures the scene is fully rendered and stable
+      if (!hasCompleted.current && frameCount.current >= 60) {
+        hasCompleted.current = true;
+        onLoadComplete();
+      }
     }
   });
 
@@ -398,41 +425,51 @@ export default function SolarSystem() {
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      {/* Loading indicator overlay */}
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000000' }}>
+      {/* Loading indicator overlay with backdrop */}
       {isLoading && (
         <div
           style={{
             position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-            color: 'white',
-            fontFamily: 'var(--font-geist-sans)',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             zIndex: 1000,
           }}
         >
           <div
             style={{
-              width: '60px',
-              height: '60px',
-              border: '3px solid rgba(96, 165, 250, 0.2)',
-              borderTop: '3px solid #60a5fa',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 20px',
+              textAlign: 'center',
+              color: 'white',
+              fontFamily: 'var(--font-geist-sans)',
             }}
-          />
-          <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading Solar System...</div>
-          <style>
-            {`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}
-          </style>
+          >
+            <div
+              style={{
+                width: '60px',
+                height: '60px',
+                border: '3px solid rgba(96, 165, 250, 0.2)',
+                borderTop: '3px solid #60a5fa',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 20px',
+              }}
+            />
+            <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading Solar System...</div>
+            <style>
+              {`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}
+            </style>
+          </div>
         </div>
       )}
 
@@ -462,6 +499,11 @@ export default function SolarSystem() {
           {/* All planets with their orbits and moons */}
           {PLANETS.map((planet) => (
             <PlanetWithMoons key={planet.name} planetData={planet} />
+          ))}
+
+          {/* Dwarf planets (Eris, Haumea, Makemake) with their moons */}
+          {DWARF_PLANETS.map((dwarfPlanet) => (
+            <PlanetWithMoons key={dwarfPlanet.name} planetData={dwarfPlanet} />
           ))}
 
           {/* Asteroid Belt visualization */}
