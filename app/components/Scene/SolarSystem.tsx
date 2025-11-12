@@ -38,20 +38,7 @@ function SceneUpdater() {
   const useFlipAndBurn = useStore((state) => state.useFlipAndBurn);
   const completeJourney = useStore((state) => state.completeJourney);
 
-  const frameCountRef = useRef<number>(0);
-  const accumulatedDeltaRef = useRef<number>(0);
-
-  useFrame((state, delta) => {
-    // Debug: Track delta accumulation
-    frameCountRef.current++;
-    accumulatedDeltaRef.current += delta;
-
-    // Log every 60 frames (about 1 second at 60fps)
-    if (frameCountRef.current % 60 === 0) {
-      console.log('[Frame 60] Delta:', delta.toFixed(4), 's | Total accumulated:', accumulatedDeltaRef.current.toFixed(2), 's | Frames:', frameCountRef.current);
-      accumulatedDeltaRef.current = 0; // Reset accumulator
-    }
-
+  useFrame((_state, delta) => {
     updateSimulationTime(delta);
 
     // Update journey progress if traveling
@@ -386,31 +373,34 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
   const [loadedCount, setLoadedCount] = useState(0);
   const totalItems = useRef(0);
   const hasCompleted = useRef(false);
-  const frameCount = useRef(0);
+  const loadedNames = useRef(new Set<string>());
 
   useEffect(() => {
     // Count total items to load: planets with textures (9: Mercury-Pluto) + Sun (1) = 10 total
     totalItems.current = PLANETS.filter(p => p.texture).length + 1; // +1 for Sun
   }, []);
 
-  useFrame(() => {
-    // Only start counting frames after all textures are loaded
-    if (loadedCount >= totalItems.current && totalItems.current > 0) {
-      frameCount.current += 1;
-
-      // Wait for at least 60 frames (approximately 1 second at 60fps) after textures load
-      // This ensures the scene is fully rendered and stable
-      if (!hasCompleted.current && frameCount.current >= 60) {
-        hasCompleted.current = true;
-        onLoadComplete();
-      }
+  // Check loading complete whenever count changes
+  useEffect(() => {
+    if (loadedCount >= totalItems.current && totalItems.current > 0 && !hasCompleted.current) {
+      hasCompleted.current = true;
+      console.log('[LoadingTracker] All', loadedCount, 'textures loaded! Hiding loading screen in 500ms...');
+      // Delay to ensure scene is fully rendered
+      setTimeout(() => onLoadComplete(), 500);
     }
-  });
+  }, [loadedCount, onLoadComplete]);
 
   // Expose a way for planets to report loading
   useEffect(() => {
-    const handleTextureLoad = () => {
-      setLoadedCount(prev => prev + 1);
+    const handleTextureLoad = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const name = customEvent.detail?.name || 'Unknown';
+
+      // Only count each planet once (prevent duplicate events from StrictMode)
+      if (!loadedNames.current.has(name)) {
+        loadedNames.current.add(name);
+        setLoadedCount(prev => prev + 1);
+      }
     };
 
     // Listen for texture load events

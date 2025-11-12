@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Mesh, TextureLoader, Group } from 'three';
 import { PlanetData, SCALE_FACTORS } from '@/app/data/planets';
@@ -27,12 +27,15 @@ export default function Planet({ data }: PlanetProps) {
   const loadedTexture = useLoader(TextureLoader, data.texture ?? placeholderDataUrl);
   const texture = data.texture ? loadedTexture : null;
 
-  // Dispatch event when texture is loaded (for loading tracker)
-  const [hasDispatchedLoad, setHasDispatchedLoad] = useState(false);
-  if (texture && data.texture && !hasDispatchedLoad) {
-    setHasDispatchedLoad(true);
-    window.dispatchEvent(new CustomEvent('planet-texture-loaded'));
-  }
+  // Dispatch event when texture is loaded (for loading tracker) - use useEffect to avoid re-renders
+  const hasDispatchedRef = useRef(false);
+  useEffect(() => {
+    if (texture && data.texture && !hasDispatchedRef.current) {
+      hasDispatchedRef.current = true;
+      console.log('[Planet] Dispatching load event for:', data.name);
+      window.dispatchEvent(new CustomEvent('planet-texture-loaded', { detail: { name: data.name } }));
+    }
+  }, [texture, data.texture, data.name]);
 
   // Calculate scaled values based on scale mode
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
