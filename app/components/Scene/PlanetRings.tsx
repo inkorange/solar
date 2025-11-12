@@ -24,8 +24,6 @@ export default function PlanetRings({
   const loadedTexture = useLoader(TextureLoader, texture ?? placeholderDataUrl);
   const ringTexture = texture ? (loadedTexture as Texture) : null;
 
-  // Load ring texture if provided
-
   // Create custom ring geometry with proper UV mapping for circumferential texture
   const ringGeometry = useMemo(() => {
     const geometry = new BufferGeometry();

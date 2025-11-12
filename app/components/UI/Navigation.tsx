@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/app/store/useStore';
-import { PLANETS, SCALE_FACTORS } from '@/app/data/planets';
+import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
 import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
 import styles from './Navigation.module.scss';
 
@@ -21,13 +21,17 @@ export default function Navigation() {
 
   if (!showNavigation) return null;
 
-  // Filter planets based on search term
-  const filteredPlanets = searchTerm
-    ? PLANETS.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : PLANETS;
+  // Combine all celestial bodies for filtering
+  const allBodies = [...PLANETS, ...DWARF_PLANETS];
 
-  const terrestrialPlanets = filteredPlanets.filter(p => p.type === 'Terrestrial');
-  const gasGiants = filteredPlanets.filter(p => p.type.includes('Giant'));
+  // Filter celestial bodies based on search term
+  const filteredBodies = searchTerm
+    ? allBodies.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : allBodies;
+
+  const terrestrialPlanets = filteredBodies.filter(p => p.type === 'Terrestrial');
+  const gasGiants = filteredBodies.filter(p => p.type.includes('Giant'));
+  const dwarfPlanets = filteredBodies.filter(p => p.type === 'Dwarf Planet');
 
   const handlePlanetClick = (planet: typeof PLANETS[0]) => {
     setSelectedPlanet(planet);
@@ -57,28 +61,34 @@ export default function Navigation() {
 
     // Very aggressive exponential scaling for small planets
     // Jupiter: multiplier = 1.0 (30% fill)
-    // Small planets: multiplier = 30-40 (much closer!)
-    const distanceMultiplier = 1 + (39 * Math.pow(1 - sizeRatio, 1.5));
+    // Calculate camera distance with better balance for large and small planets
+    // Larger planets closer, smaller planets much farther away
+    const distanceMultiplier = 1 + (20 * Math.pow(1 - sizeRatio, 1.2));
 
-    // Base distance for Jupiter at 30% viewport fill (comfortable viewing)
-    const baseDistance = planetDiameter / (0.3 * 2 * Math.tan(fovRadians / 2));
+    // Base distance - larger planets fill more of viewport, smaller planets fill less
+    // Use adaptive viewport fill based on size
+    const viewportFill = 0.15 + (0.1 * sizeRatio); // 0.15 for small, 0.25 for Jupiter
+    const baseDistance = planetDiameter / (viewportFill * 2 * Math.tan(fovRadians / 2));
 
     // Apply inverse multiplier (higher multiplier = closer camera)
     let cameraDistance = baseDistance / distanceMultiplier;
 
-    // Safety constraint: ensure camera is always at least 2x the visual size away
+    // Safety constraint: adaptive minimum distance based on planet size
     // Account for rings if present (especially Saturn)
     const visualRadius = planet.hasRings && planet.ringData
       ? planetRadius * planet.ringData.outerRadiusRatio
       : planetRadius;
-    const minSafeDistance = visualRadius * 2;
+    // Smaller multiplier for larger planets, larger for small planets
+    const safetyMultiplier = 3 + (3 * (1 - sizeRatio)); // 3x for large, 6x for small
+    const minSafeDistance = visualRadius * safetyMultiplier;
     cameraDistance = Math.max(cameraDistance, minSafeDistance);
 
     // Position camera at an angle for better viewing
-    const angle = Math.PI / 4; // 45 degrees
+    // Camera should be offset from the planet's actual 3D position
+    const angle = Math.PI / 4; // 45 degrees horizontal
     const cameraPos: [number, number, number] = [
       position.x + cameraDistance * Math.cos(angle),
-      cameraDistance * 0.3,
+      position.y + cameraDistance * 0.3, // Slightly above the planet's orbital plane
       position.z + cameraDistance * Math.sin(angle),
     ];
 
@@ -164,8 +174,35 @@ export default function Navigation() {
         </>
       )}
 
-      {filteredPlanets.length === 0 && (
-        <div className={styles.noResults}>No planets found</div>
+      {dwarfPlanets.length > 0 && (
+        <>
+          <div className={styles.groupTitle}>Dwarf Planets</div>
+          <ul className={styles.planetList}>
+            {dwarfPlanets.map((planet) => (
+              <li key={planet.name}>
+                <button
+                  className={`${styles.planetButton} ${selectedPlanet?.name === planet.name ? styles.selected : ''}`}
+                  onClick={() => handlePlanetClick(planet)}
+                >
+                  <div>
+                    <div className={styles.planetName}>{planet.name}</div>
+                    <div className={styles.planetType}>{planet.type}</div>
+                  </div>
+                  <div style={{ fontSize: '18px' }}>
+                    {planet.name === 'Pluto' && '♇'}
+                    {planet.name === 'Eris' && '⯰'}
+                    {planet.name === 'Haumea' && '🥚'}
+                    {planet.name === 'Makemake' && '🗿'}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {filteredBodies.length === 0 && (
+        <div className={styles.noResults}>No celestial bodies found</div>
       )}
     </div>
   );

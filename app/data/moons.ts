@@ -22,6 +22,7 @@ export interface MoonData {
   orbitalSpeed: number; // km/s
   orbitalEccentricity: number;
   orbitalInclination: number; // degrees
+  meanAnomalyAtEpoch?: number; // degrees at J2000 epoch (optional, for accurate positioning)
 
   // Additional info
   tidally_locked: boolean;
@@ -69,6 +70,7 @@ export const MOONS: MoonData[] = [
     orbitalSpeed: 17.334,
     orbitalEccentricity: 0.0041,
     orbitalInclination: 0.05,
+    meanAnomalyAtEpoch: 342.0, // degrees at J2000
     tidally_locked: true,
     facts: [
       "Most volcanically active body in the solar system",
@@ -89,6 +91,7 @@ export const MOONS: MoonData[] = [
     orbitalSpeed: 13.740,
     orbitalEccentricity: 0.0094,
     orbitalInclination: 0.47,
+    meanAnomalyAtEpoch: 171.0, // degrees at J2000
     tidally_locked: true,
     facts: [
       "Smooth ice surface with few craters",
@@ -109,6 +112,7 @@ export const MOONS: MoonData[] = [
     orbitalSpeed: 10.880,
     orbitalEccentricity: 0.0013,
     orbitalInclination: 0.20,
+    meanAnomalyAtEpoch: 50.0, // degrees at J2000
     tidally_locked: true,
     facts: [
       "Largest moon in the solar system",
@@ -129,6 +133,7 @@ export const MOONS: MoonData[] = [
     orbitalSpeed: 8.204,
     orbitalEccentricity: 0.0074,
     orbitalInclination: 0.19,
+    meanAnomalyAtEpoch: 283.0, // degrees at J2000
     tidally_locked: true,
     facts: [
       "Most heavily cratered object in the solar system",
@@ -537,6 +542,29 @@ export const MOONS: MoonData[] = [
       "Has nitrogen geysers and a thin atmosphere",
       "Coldest known object in the solar system (-235°C)"
     ]
+  },
+
+  // Pluto's Major Moon
+  {
+    name: "Charon",
+    parentPlanet: "Pluto",
+    color: "#a0a0a0",
+    diameter: 1212,
+    mass: 0.165, // About 12% of Pluto's mass
+    gravity: 0.288,
+    distanceFromPlanet: 19640,
+    orbitalPeriod: 6.387,
+    orbitalSpeed: 0.223,
+    orbitalEccentricity: 0.0002,
+    orbitalInclination: 0.08,
+    tidally_locked: true,
+    facts: [
+      "Largest moon relative to its parent body",
+      "Forms a binary system with Pluto",
+      "Both Pluto and Charon are tidally locked to each other",
+      "Surface is mostly water ice",
+      "Discovered in 1978 by James Christy"
+    ]
   }
 ];
 
@@ -554,5 +582,6 @@ export const MOON_COUNTS = {
   Jupiter: 6, // Galilean moons (3D) + Amalthea, Himalia (sprites)
   Saturn: 8, // Titan (3D), Enceladus, Rhea (3D) + Mimas, Tethys, Dione, Iapetus (sprites)
   Uranus: 5, // Titania, Oberon (3D) + Ariel, Umbriel, Miranda (sprites)
-  Neptune: 2  // Triton (3D) + Proteus (sprite)
+  Neptune: 2,  // Triton (3D) + Proteus (sprite)
+  Pluto: 1 // Charon (3D)
 };

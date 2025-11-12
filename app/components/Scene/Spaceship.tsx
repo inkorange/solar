@@ -33,14 +33,13 @@ export default function Spaceship() {
   const position = useMemo(() => {
     const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
 
-    // If we've arrived at a destination, stay at that planet's current position
-    if (journeyStatus === 'arrived' && destination) {
-      const destPosData = calculateEllipticalOrbitPosition(
-        simulationTime,
-        destination,
-        scaleFactor.DISTANCE
+    // If we've arrived at a destination, stay at the intercept point where we landed
+    if (journeyStatus === 'arrived' && destinationPositionAtArrival) {
+      return new Vector3(
+        destinationPositionAtArrival.x,
+        destinationPositionAtArrival.y,
+        destinationPositionAtArrival.z
       );
-      return new Vector3(destPosData.x, 0, destPosData.z);
     }
 
     // If not traveling and no arrival state, default to Earth orbit
@@ -63,12 +62,12 @@ export default function Spaceship() {
       origin,
       scaleFactor.DISTANCE
     );
-    const originPos = new Vector3(originPosData.x, 0, originPosData.z);
+    const originPos = new Vector3(originPosData.x, originPosData.y, originPosData.z);
 
     // Destination position at arrival (from intercept calculation)
     const destPos = new Vector3(
       destinationPositionAtArrival.x,
-      0,
+      destinationPositionAtArrival.y,
       destinationPositionAtArrival.z
     );
 
@@ -106,7 +105,7 @@ export default function Spaceship() {
       // Calculate direction to destination (the trajectory)
       const destPos = new Vector3(
         destinationPositionAtArrival.x,
-        0,
+        destinationPositionAtArrival.y,
         destinationPositionAtArrival.z
       );
       const directionToDestination = new Vector3()
@@ -133,8 +132,8 @@ export default function Spaceship() {
     }
   });
 
-  // Only render spaceship when actively traveling
-  if (journeyStatus !== 'traveling') {
+  // Only render spaceship when traveling or arrived at destination
+  if (journeyStatus !== 'traveling' && journeyStatus !== 'arrived') {
     return null;
   }
 

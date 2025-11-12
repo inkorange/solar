@@ -408,7 +408,15 @@ Build a beautiful, scientifically accurate 3D representation of the solar system
   - [x] Travel time calculations accurately reflect longer journey times when decelerating
   - [x] When disabled, ship accelerates to max speed and coasts without deceleration (fly-by trajectory)
 
-### Phase 8: Nice to haves
+### Phase 8: Adding Pluto
+- [ ] Add Pluto and it's orbit to the solar system rendering
+- [ ] Keep in mind that Pluto's orbit is not in the ecliptic like other planets
+- [ ] Allow Pluto to be a selection on the Solar System left-menu for a destination to fly to
+- [ ] Expand out the uoter limits of the scene to accomodate the distance of Pluto
+- [ ] Add Pluto's one moon
+- [ ] Add other dwarf planets to the destination selector on the left nav 
+
+### Phase 9: Nice to haves
 - [ ] Mission profiles (recreate historical space missions)
 - [ ] Educational guided tours with narration
 - [ ] Multi-language support

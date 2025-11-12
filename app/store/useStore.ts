@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { PlanetData } from '../data/planets';
+import { PlanetData, SCALE_FACTORS } from '../data/planets';
 import { PropulsionType } from '../data/propulsion';
+import { calculateEllipticalOrbitPosition } from '../lib/orbital-mechanics';
 
 export type CameraMode = 'free' | 'follow-spaceship' | 'planet-focus' | 'destination-preview';
 export type ScaleMode = 'visual' | 'realistic';
@@ -24,13 +25,13 @@ interface AppState {
   journeyElapsedTime: number; // Elapsed time in the journey (seconds)
   totalDistance: number; // Total journey distance in km
   arrivalTime: number; // Simulation time when journey will complete
-  destinationPositionAtArrival: { x: number; z: number } | null; // Where destination will be when ship arrives
+  destinationPositionAtArrival: { x: number; y: number; z: number } | null; // Where destination will be when ship arrives
   pausedBeforeSelection: boolean; // Pause state before entering propulsion selection
   setJourneyStatus: (status: JourneyStatus) => void;
   setOrigin: (planet: PlanetData | null) => void;
   setSelectedPropulsion: (propulsion: PropulsionType | null) => void;
   setUseFlipAndBurn: (use: boolean) => void;
-  startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number, arrivalTime: number, destinationPosAtArrival: { x: number; z: number }, useFlipAndBurn: boolean) => void;
+  startJourney: (origin: PlanetData, destination: PlanetData, propulsion: PropulsionType, distance: number, arrivalTime: number, destinationPosAtArrival: { x: number; y: number; z: number }, useFlipAndBurn: boolean) => void;
   updateJourneyProgress: (delta: number) => void;
   completeJourney: () => void;
   resetJourney: () => void;
@@ -135,9 +136,58 @@ export const useStore = create<AppState>((set) => ({
       };
     }),
   completeJourney: () =>
-    set({
-      journeyStatus: 'arrived',
-      journeyElapsedTime: 0,
+    set((state) => {
+      if (!state.destination) {
+        return {
+          journeyStatus: 'arrived',
+          journeyElapsedTime: 0,
+        };
+      }
+
+      // Calculate camera position for the destination planet (same logic as Controls.tsx)
+      const scaleFactor = state.scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+      const position = calculateEllipticalOrbitPosition(
+        state.simulationTime,
+        state.destination,
+        scaleFactor.DISTANCE
+      );
+
+      // Calculate camera distance based on planet size
+      const planetRadius = (state.destination.diameter / 12742) * scaleFactor.SIZE * 5;
+      const planetDiameter = planetRadius * 2;
+
+      const fov = 60;
+      const fovRadians = (fov * Math.PI) / 180;
+
+      const jupiterDiameter = (142984 / 12742) * scaleFactor.SIZE * 5 * 2;
+      const sizeRatio = Math.min(planetDiameter / jupiterDiameter, 1);
+      const distanceMultiplier = 1 + (39 * Math.pow(1 - sizeRatio, 1.5));
+      const baseDistance = planetDiameter / (0.3 * 2 * Math.tan(fovRadians / 2));
+      let cameraDistance = baseDistance / distanceMultiplier;
+
+      const visualRadius = state.destination.hasRings && state.destination.ringData
+        ? planetRadius * state.destination.ringData.outerRadiusRatio
+        : planetRadius;
+      const minSafeDistance = visualRadius * 2;
+      cameraDistance = Math.max(cameraDistance, minSafeDistance);
+
+      const angle = Math.PI / 4;
+      const cameraPos: [number, number, number] = [
+        position.x + cameraDistance * Math.cos(angle),
+        cameraDistance * 0.3,
+        position.z + cameraDistance * Math.sin(angle),
+      ];
+
+      // Switch to planet-focus mode and target the destination planet
+      return {
+        journeyStatus: 'arrived',
+        journeyElapsedTime: 0,
+        cameraMode: 'planet-focus',
+        focusedPlanetName: state.destination.name,
+        selectedPlanet: state.destination,
+        showInfoPanel: true,
+        cameraTarget: cameraPos,
+      };
     }),
   resetJourney: () =>
     set({

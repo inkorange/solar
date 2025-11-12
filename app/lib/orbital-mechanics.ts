@@ -101,13 +101,13 @@ export function calculateCurrentMeanLongitude(
  * @param time Current simulation time in seconds
  * @param planet Planet data with orbital parameters
  * @param scaleFactor Scale multiplier for visualization
- * @returns {x, z} position coordinates
+ * @returns {x, y, z} position coordinates
  */
 export function calculateEllipticalOrbitPosition(
   time: number,
   planet: PlanetData,
   scaleFactor: number
-): { x: number; z: number } {
+): { x: number; y: number; z: number } {
   const { distanceFromSun, orbitalPeriod, orbitalEccentricity, orbitalInclination } = planet;
 
   // Convert orbital period from days to seconds
@@ -150,12 +150,21 @@ export function calculateEllipticalOrbitPosition(
   // Position in orbital plane
   const scaledDistance = distance * scaleFactor;
 
-  // Convert to 3D coordinates with sun at origin (one focus of ellipse)
-  // The true anomaly already includes the initial phase through the mean anomaly calculation
-  const x = scaledDistance * Math.cos(trueAnomaly);
-  const z = scaledDistance * Math.sin(trueAnomaly);
+  // Calculate position in the orbital plane (2D)
+  const xOrbital = scaledDistance * Math.cos(trueAnomaly);
+  const yOrbital = scaledDistance * Math.sin(trueAnomaly);
 
-  return { x, z };
+  // Apply orbital inclination to create 3D position
+  // Convert inclination from degrees to radians
+  const inclinationRadians = (orbitalInclination * Math.PI) / 180;
+
+  // Rotate around the x-axis by the inclination angle
+  // This tilts the orbital plane relative to the ecliptic
+  const x = xOrbital;
+  const y = yOrbital * Math.sin(inclinationRadians);
+  const z = yOrbital * Math.cos(inclinationRadians);
+
+  return { x, y, z };
 }
 
 /**
@@ -176,7 +185,7 @@ export function generateEllipticalOrbitPath(
   for (let i = 0; i <= segments; i++) {
     const time = (i / segments) * periodSeconds;
     const pos = calculateEllipticalOrbitPosition(time, planet, scaleFactor);
-    points.push({ x: pos.x, y: 0, z: pos.z });
+    points.push({ x: pos.x, y: pos.y, z: pos.z });
   }
 
   return points;
@@ -200,9 +209,10 @@ export function calculateDistanceBetweenPlanets(
   const pos2 = calculateEllipticalOrbitPosition(time, planet2, scaleFactor);
 
   const dx = pos2.x - pos1.x;
+  const dy = pos2.y - pos1.y;
   const dz = pos2.z - pos1.z;
 
-  const distanceInScaledUnits = Math.sqrt(dx * dx + dz * dz);
+  const distanceInScaledUnits = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
   // Convert back to AU, then to km
   const distanceInAU = distanceInScaledUnits / scaleFactor;
@@ -230,8 +240,8 @@ export function calculateInterceptCourse(
 ): {
   distance: number;
   arrivalTime: number;
-  destinationPositionAtArrival: { x: number; z: number };
-  originPositionAtDeparture: { x: number; z: number };
+  destinationPositionAtArrival: { x: number; y: number; z: number };
+  originPositionAtDeparture: { x: number; y: number; z: number };
 } {
   const AU_TO_KM = 149597870.7;
 
@@ -241,7 +251,7 @@ export function calculateInterceptCourse(
   // Iteratively calculate where the destination will be when we arrive
   let arrivalTime = currentTime;
   let distance = 0;
-  let destinationPos = { x: 0, z: 0 };
+  let destinationPos = { x: 0, y: 0, z: 0 };
 
   // Iterate to convergence (usually converges in 3-5 iterations)
   for (let iteration = 0; iteration < 10; iteration++) {
@@ -250,8 +260,9 @@ export function calculateInterceptCourse(
 
     // Calculate distance from origin (at departure) to destination (at arrival)
     const dx = destinationPos.x - originPos.x;
+    const dy = destinationPos.y - originPos.y;
     const dz = destinationPos.z - originPos.z;
-    const distanceInScaledUnits = Math.sqrt(dx * dx + dz * dz);
+    const distanceInScaledUnits = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Convert to km
     const distanceInAU = distanceInScaledUnits / scaleFactor;
