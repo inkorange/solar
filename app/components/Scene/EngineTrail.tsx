@@ -14,7 +14,7 @@ interface EngineTrailProps {
 
 const PARTICLE_COUNT = 350;
 const PARTICLE_LIFETIME = 1.0; // seconds
-const SHIP_SCALE = 0.0125; // Match spaceship scale (75% smaller than before)
+const SHIP_SCALE = 0.003125; // Match spaceship scale (25% of previous size)
 
 export default function EngineTrail({ propulsion, isActive, flightPhase }: EngineTrailProps) {
   // Only show engine effects when accelerating or decelerating

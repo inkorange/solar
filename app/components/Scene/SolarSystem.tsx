@@ -232,15 +232,11 @@ function CameraController() {
           // Calculate direction from Earth to ship (ship's travel direction)
           const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
 
-          // Position camera close behind ship so it fills ~25% of screen
-          // Ship is roughly 0.025 units long (SHIP_SCALE 0.0125 * 2)
-          // FOV is 60 degrees, so for 25% screen fill:
-          // distance = (shipLength / 0.25) / (2 * tan(FOV/2))
-          const shipLength = 0.025;
-          const fov = 60 * (Math.PI / 180);
-          const targetScreenFill = 0.25;
-          const cameraDistance = (shipLength / targetScreenFill) / (2 * Math.tan(fov / 2));
-          const cameraHeight = cameraDistance * 0.15; // Slightly above (15% of distance)
+          // Position camera very close behind ship so it's clearly visible
+          // Ship is roughly 0.00625 units long (SHIP_SCALE 0.003125 * 2)
+          // Place camera at a fixed close distance to ensure ship is prominently visible
+          const cameraDistance = 0.02; // Very close - about 3x ship length
+          const cameraHeight = cameraDistance * 0.3; // Slightly above
 
           const offsetPos = earthToShip.clone().multiplyScalar(-cameraDistance)
             .add(new Vector3(0, cameraHeight, 0));

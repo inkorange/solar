@@ -14,6 +14,10 @@ export default function Spaceship() {
   const groupRef = useRef<Group | null>(null);
   const previousPositionRef = useRef<Vector3 | null>(null);
 
+  // Smoothing refs for high-speed camera stability
+  const smoothedPositionRef = useRef<Vector3>(new Vector3());
+  const isSmoothedInitializedRef = useRef(false);
+
   const {
     journeyStatus,
     origin,
@@ -28,6 +32,7 @@ export default function Spaceship() {
     scaleMode,
     simulationTime,
     setSpaceshipPosition,
+    timeSpeed,
   } = useStore();
 
   // Calculate current position during journey
@@ -179,8 +184,41 @@ export default function Spaceship() {
   }, [journeyStatus, selectedPropulsion, journeyElapsedTime, totalDistance, useFlipAndBurn]);
 
   // Update spaceship position and rotation
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (groupRef.current && journeyStatus === 'traveling' && selectedPropulsion && destinationPositionAtArrival) {
+      // Initialize smoothed position on first frame
+      if (!isSmoothedInitializedRef.current) {
+        smoothedPositionRef.current.copy(position);
+        isSmoothedInitializedRef.current = true;
+      }
+
+      // Adaptive smoothing: heavier at high speeds, lighter at low speeds
+      // At low speeds (1x-100x): Light smoothing for responsive tracking
+      // At high speeds (10kx+): Heavy smoothing to eliminate jitter
+
+      let smoothFactor: number;
+
+      if (timeSpeed <= 100) {
+        // Low speed: minimal smoothing (0.2 = light, responsive)
+        smoothFactor = 0.2;
+      } else if (timeSpeed <= 1000) {
+        // Medium speed: moderate smoothing
+        smoothFactor = 0.1;
+      } else if (timeSpeed <= 10000) {
+        // High speed: heavy smoothing
+        smoothFactor = 0.05;
+      } else {
+        // Very high speed (>10kx): maximum smoothing to eliminate all jitter
+        smoothFactor = 0.02;
+      }
+
+      // Frame-rate independent smoothing
+      // This ensures consistent behavior at 30fps, 60fps, or 144fps
+      const frameIndependentSmooth = 1 - Math.pow(1 - smoothFactor, delta * 60);
+
+      // Smooth the position - lerp from current smoothed position toward calculated position
+      smoothedPositionRef.current.lerp(position, frameIndependentSmooth);
+
       // Get current flight phase
       const isDecelerating = flightPhase === 'decelerating';
 
@@ -191,7 +229,7 @@ export default function Spaceship() {
         destinationPositionAtArrival.z
       );
       const directionToDestination = new Vector3()
-        .subVectors(destPos, position)
+        .subVectors(destPos, smoothedPositionRef.current)
         .normalize();
 
       // Calculate angle in XZ plane (horizontal rotation)
@@ -203,14 +241,18 @@ export default function Spaceship() {
       // Spaceship model points in +X direction by default (Math.PI / 2 rotation applied in mesh)
       groupRef.current.rotation.y = -angle + (isDecelerating ? Math.PI : 0);
 
-      // Update position
-      groupRef.current.position.copy(position);
+      // Update position with smoothed value
+      groupRef.current.position.copy(smoothedPositionRef.current);
 
       // Store current position for next frame
-      previousPositionRef.current = position.clone();
+      previousPositionRef.current = smoothedPositionRef.current.clone();
 
-      // Update the store so camera can follow
-      setSpaceshipPosition([position.x, position.y, position.z]);
+      // Update the store so camera can follow (using smoothed position)
+      setSpaceshipPosition([
+        smoothedPositionRef.current.x,
+        smoothedPositionRef.current.y,
+        smoothedPositionRef.current.z
+      ]);
     }
   });
 
@@ -219,8 +261,8 @@ export default function Spaceship() {
     return null;
   }
 
-  // Scale factor to make spaceship much smaller (1.25% of original size - 75% smaller than previous 5%)
-  const SHIP_SCALE = 0.0125;
+  // Scale factor to make spaceship smaller (25% of the 1.25% size = 0.3125% of original)
+  const SHIP_SCALE = 0.003125;
 
   return (
     <group ref={groupRef}>

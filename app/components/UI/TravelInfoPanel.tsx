@@ -23,6 +23,7 @@ export default function TravelInfoPanel() {
     totalDistance,
     cancelJourney,
     resetJourney,
+    showControls,
   } = useStore();
 
   if (!destination || !origin || !selectedPropulsion) {
@@ -80,7 +81,7 @@ export default function TravelInfoPanel() {
   // Show arrived state
   if (journeyStatus === 'arrived') {
     return (
-      <div className={`${styles.panel} ${styles.arrivedPanel}`}>
+      <div className={`${styles.panel} ${styles.arrivedPanel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed}`}>
         <div className={styles.celebrationIcon}>🎉</div>
 
         <div className={styles.arrivedMessage}>
@@ -127,7 +128,7 @@ export default function TravelInfoPanel() {
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={`${styles.panel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed}`}>
       <div className={styles.header}>
         <div className={styles.title}>
           <h2>Journey in Progress</h2>

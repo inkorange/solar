@@ -71,9 +71,11 @@ interface AppState {
   showWelcome: boolean;
   showInfoPanel: boolean;
   showNavigation: boolean;
+  showControls: boolean;
   setShowWelcome: (show: boolean) => void;
   setShowInfoPanel: (show: boolean) => void;
   setShowNavigation: (show: boolean) => void;
+  setShowControls: (show: boolean) => void;
 
   // Spaceship position (for Phase 2)
   spaceshipPosition: [number, number, number];
@@ -270,9 +272,11 @@ export const useStore = create<AppState>((set) => ({
   showWelcome: true,
   showInfoPanel: false,
   showNavigation: true,
+  showControls: false, // Start hidden on mobile
   setShowWelcome: (show) => set({ showWelcome: show }),
   setShowInfoPanel: (show) => set({ showInfoPanel: show }),
   setShowNavigation: (show) => set({ showNavigation: show }),
+  setShowControls: (show) => set({ showControls: show }),
 
   // Spaceship
   spaceshipPosition: [0, 0, 10], // Start near Earth

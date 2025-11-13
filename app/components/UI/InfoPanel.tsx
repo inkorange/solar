@@ -14,6 +14,7 @@ export default function InfoPanel() {
     setOrigin,
     setJourneyStatus,
     spaceshipPosition,
+    showControls,
   } = useStore();
 
   // Find the planet closest to spaceship as origin
@@ -39,7 +40,7 @@ export default function InfoPanel() {
   const isPlanetOrAsteroid = 'distanceFromSun' in selectedPlanet;
 
   return (
-    <div className={styles.infoPanel}>
+    <div className={`${styles.infoPanel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed}`}>
       <div className={styles.scrollContent}>
         <div className={styles.header}>
           <h2>{selectedPlanet.name}</h2>
