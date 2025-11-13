@@ -314,3 +314,20 @@
     }
   }
 }
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+  .panel {
+    // When controls are collapsed (hidden), panel can be taller
+    &.controlsCollapsed {
+      bottom: 20px;
+      max-height: calc(100vh - 80px);
+    }
+
+    // When controls are expanded (visible), panel must be shorter
+    &.controlsExpanded {
+      bottom: 120px;
+      max-height: calc(100vh - 200px);
+    }
+  }
+}

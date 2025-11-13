@@ -22,7 +22,6 @@ const CAMERA_MODES: { mode: CameraMode; label: string }[] = [
 ];
 
 export default function Controls() {
-  const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   const {
@@ -44,6 +43,8 @@ export default function Controls() {
     setCameraTarget,
     simulationTime,
     scaleMode,
+    showControls,
+    setShowControls,
   } = useStore();
 
   // Detect if mobile on mount
@@ -53,7 +54,7 @@ export default function Controls() {
       setIsMobile(mobile);
       // On desktop, start visible; on mobile, start hidden
       if (!mobile) {
-        setIsVisible(true);
+        setShowControls(true);
       }
     };
 
@@ -118,28 +119,28 @@ export default function Controls() {
 
   const handleMouseEnter = () => {
     if (!isMobile) {
-      setIsVisible(true);
+      setShowControls(true);
     }
   };
 
   const handleMouseLeave = () => {
     if (!isMobile) {
-      setIsVisible(false);
+      setShowControls(false);
     }
   };
 
   const toggleVisibility = () => {
-    setIsVisible(!isVisible);
+    setShowControls(!showControls);
   };
 
   return (
     <div
-      className={`${styles.controlsWrapper} ${isVisible ? styles.visible : styles.hidden}`}
+      className={`${styles.controlsWrapper} ${showControls ? styles.visible : styles.hidden}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* Toggle button (visible when hidden, especially on mobile) */}
-      {!isVisible && (
+      {!showControls && (
         <button
           className={styles.toggleButton}
           onClick={toggleVisibility}
@@ -251,7 +252,7 @@ export default function Controls() {
       </div>
 
       {/* Close button for mobile when visible */}
-      {isMobile && isVisible && (
+      {isMobile && showControls && (
         <button
           className={styles.closeButton}
           onClick={toggleVisibility}

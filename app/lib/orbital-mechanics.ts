@@ -224,6 +224,7 @@ export function calculateDistanceBetweenPlanets(
 /**
  * Calculate the optimal intercept for a journey between two planets
  * Takes into account that the destination planet will move during the journey
+ * Distance accounts for planet radii - journey starts at surface of origin, ends at surface of destination
  * @param origin Origin planet
  * @param destination Destination planet
  * @param currentTime Current simulation time in seconds
@@ -248,6 +249,10 @@ export function calculateInterceptCourse(
   // Get origin position at current time (departure time)
   const originPos = calculateEllipticalOrbitPosition(currentTime, origin, scaleFactor);
 
+  // Calculate planet radii in km
+  const originRadiusKm = origin.diameter / 2; // diameter is in km
+  const destinationRadiusKm = destination.diameter / 2;
+
   // Iteratively calculate where the destination will be when we arrive
   let arrivalTime = currentTime;
   let distance = 0;
@@ -258,15 +263,19 @@ export function calculateInterceptCourse(
     // Calculate where destination will be at the estimated arrival time
     destinationPos = calculateEllipticalOrbitPosition(arrivalTime, destination, scaleFactor);
 
-    // Calculate distance from origin (at departure) to destination (at arrival)
+    // Calculate center-to-center distance from origin (at departure) to destination (at arrival)
     const dx = destinationPos.x - originPos.x;
     const dy = destinationPos.y - originPos.y;
     const dz = destinationPos.z - originPos.z;
     const distanceInScaledUnits = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-    // Convert to km
+    // Convert to km (center-to-center)
     const distanceInAU = distanceInScaledUnits / scaleFactor;
-    const newDistance = distanceInAU * AU_TO_KM;
+    const centerToCenterDistanceKm = distanceInAU * AU_TO_KM;
+
+    // Subtract the radii of both planets to get surface-to-surface distance
+    // Journey starts at the surface of origin and ends at surface of destination
+    const newDistance = centerToCenterDistanceKm - originRadiusKm - destinationRadiusKm;
 
     // Calculate travel time for this distance
     const travelTime = travelTimeCalculator(newDistance);
