@@ -22,13 +22,9 @@ export const metadata: Metadata = {
   publisher: "Your Name",
   metadataBase: new URL('https://yourdomain.com'), // Replace with your actual domain
 
-  // Favicon and icons
+  // Favicon - Next.js automatically serves favicon.ico from /app directory
   icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.jpg', type: 'image/jpeg' },
-    ],
-    shortcut: '/favicon.ico',
+    icon: '/favicon.jpg',
     apple: '/favicon.jpg',
   },
 
@@ -88,7 +84,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <GoogleTagManager />xxx
+        <GoogleTagManager />
         {children}
       </body>
     </html>
