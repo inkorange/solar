@@ -14,7 +14,9 @@
       "WebFetch(domain:nssdc.gsfc.nasa.gov)",
       "Bash(lsof:*)",
       "Bash(xargs kill -9)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(md5:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
