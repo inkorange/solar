@@ -17,7 +17,7 @@ import Sun from './Sun';
 import Planet from './Planet';
 import Orbit from './Orbit';
 import Stars from './Stars';
-import Spaceship from './Spaceship';
+import Spaceship, { spaceshipGroupRef, updateCameraCallback } from './Spaceship';
 import Moon from './Moon';
 import Asteroid from './Asteroid';
 import AsteroidBelt from './AsteroidBelt';
@@ -110,7 +110,7 @@ function SceneUpdater() {
 function CameraController() {
   const { camera } = useThree();
   const controlsRef = useRef<OrbitControlsRef | null>(null);
-  const { cameraTarget, focusedPlanetName, cameraMode, spaceshipPosition, journeyStatus } = useStore();
+  const { cameraTarget, focusedPlanetName, cameraMode, journeyStatus, timeSpeed } = useStore();
 
   // Track last target to prevent re-animation
   const lastTargetRef = useRef<string>('');
@@ -118,14 +118,35 @@ function CameraController() {
   // Store camera offset when planet-focus or follow-spaceship mode is activated
   const cameraOffsetRef = useRef<Vector3 | null>(null);
 
-  // Track previous ship position for delta calculation
-  const previousShipPosRef = useRef<Vector3 | null>(null);
-
   // Reset camera offset when mode changes
   useEffect(() => {
     cameraOffsetRef.current = null;
-    previousShipPosRef.current = null;
   }, [cameraMode]);
+
+  // Register camera update callback for ship to use
+  useEffect(() => {
+    if (cameraMode === 'follow-spaceship') {
+      updateCameraCallback.current = (shipPosition: Vector3) => {
+        if (!controlsRef.current || !cameraOffsetRef.current) return;
+
+        // Calculate camera and target positions directly from ship position
+        const cameraPos = shipPosition.clone().add(cameraOffsetRef.current);
+        const targetPos = shipPosition.clone();
+
+        // Direct position copy - zero lag, zero drift
+        camera.position.copy(cameraPos);
+        controlsRef.current.target.copy(targetPos);
+        controlsRef.current.update();
+      };
+    } else {
+      // Clear callback when not in follow mode
+      updateCameraCallback.current = null;
+    }
+
+    return () => {
+      updateCameraCallback.current = null;
+    };
+  }, [cameraMode, camera]);
 
   // Animation state
   const animationRef = useRef<{
@@ -142,9 +163,7 @@ function CameraController() {
     if (!controlsRef.current) return;
 
     if (cameraMode === 'follow-spaceship') {
-      const shipPos = new Vector3(spaceshipPosition[0], spaceshipPosition[1], spaceshipPosition[2]);
-      controlsRef.current.target.copy(shipPos);
-      controlsRef.current.update();
+      // Skip - will be handled in useFrame
       return;
     }
 
@@ -173,7 +192,7 @@ function CameraController() {
       startLookAt: controlsRef.current.target.clone(),
       targetLookAt: new Vector3(planetPos.x, planetPos.y, planetPos.z),
     };
-  }, [cameraTarget, focusedPlanetName, camera, cameraMode, spaceshipPosition]);
+  }, [cameraTarget, focusedPlanetName, camera, cameraMode]);
 
   // Run animation and handle camera modes
   useFrame(() => {
@@ -217,10 +236,10 @@ function CameraController() {
 
     // Handle camera modes
     if (cameraMode === 'follow-spaceship') {
-      const shipPos = new Vector3(spaceshipPosition[0], spaceshipPosition[1], spaceshipPosition[2]);
-
       // Initialize camera offset on first entry
-      if (!cameraOffsetRef.current) {
+      if (!cameraOffsetRef.current && spaceshipGroupRef.current) {
+        const shipPos = spaceshipGroupRef.current.position.clone();
+
         // Get Earth's position for initial camera angle
         const earth = PLANETS.find(p => p.name === 'Earth');
         if (earth) {
@@ -232,11 +251,12 @@ function CameraController() {
           // Calculate direction from Earth to ship (ship's travel direction)
           const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
 
-          // Position camera very close behind ship so it's clearly visible
+          // Position camera to show ship filling ~15% of screen
           // Ship is roughly 0.00625 units long (SHIP_SCALE 0.003125 * 2)
-          // Place camera at a fixed close distance to ensure ship is prominently visible
-          const cameraDistance = 0.02; // Very close - about 3x ship length
-          const cameraHeight = cameraDistance * 0.3; // Slightly above
+          // To fill 15% of screen with FOV 60°, camera should be ~4x ship length away
+          const shipLength = 0.00625;
+          const cameraDistance = shipLength * 4; // ~0.025 units - close enough for 15% screen fill
+          const cameraHeight = cameraDistance * 0.25; // Slightly above for better view
 
           const offsetPos = earthToShip.clone().multiplyScalar(-cameraDistance)
             .add(new Vector3(0, cameraHeight, 0));
@@ -245,29 +265,13 @@ function CameraController() {
           cameraOffsetRef.current = offsetPos;
 
           // Set initial camera position and look-at target
-          camera.position.copy(shipPos.clone().add(offsetPos));
-          controlsRef.current.target.copy(shipPos); // Initially look at ship
+          const initialCameraPos = shipPos.clone().add(offsetPos);
+          camera.position.copy(initialCameraPos);
+          controlsRef.current.target.copy(shipPos);
           controlsRef.current.update();
         }
       }
-
-      // Track ship movement and move camera/target together to maintain relative position
-      if (cameraOffsetRef.current) {
-        if (previousShipPosRef.current) {
-          // Calculate how much the ship has moved since last frame
-          const shipMovement = shipPos.clone().sub(previousShipPosRef.current);
-
-          // Move both camera and target by the same amount
-          // This keeps the camera at a fixed position relative to ship
-          // while allowing user to freely rotate/look around
-          camera.position.add(shipMovement);
-          controlsRef.current.target.add(shipMovement);
-        }
-
-        // Store current ship position for next frame
-        previousShipPosRef.current = shipPos.clone();
-        controlsRef.current.update();
-      }
+      // Camera updates are now handled by the callback from ship's useFrame
     } else if (cameraMode === 'planet-focus' && focusedPlanetName) {
       // Planet focus mode - camera follows planet while maintaining rotation ability
       const allBodies = [...PLANETS, ...DWARF_PLANETS];
@@ -316,6 +320,10 @@ function CameraController() {
   // Disable controls when propulsion selector or other modal is open
   const controlsEnabled = journeyStatus !== 'selecting-propulsion';
 
+  // Disable damping entirely when following spaceship to prevent any lag
+  const enableDamping = cameraMode === 'follow-spaceship' ? false : true;
+  const dampingFactor = 0.1;
+
   return (
     <OrbitControls
       // store the internal OrbitControls instance in our typed ref via callback
@@ -327,8 +335,8 @@ function CameraController() {
       maxDistance={2500}
       zoomSpeed={1.0}
       rotateSpeed={0.8}
-      enableDamping={true}
-      dampingFactor={0.1}
+      enableDamping={enableDamping}
+      dampingFactor={dampingFactor}
       autoRotate={false}
       autoRotateSpeed={0}
     />
