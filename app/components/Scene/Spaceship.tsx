@@ -3,20 +3,22 @@
 import { useRef, useMemo } from 'react';
 import { Mesh, Vector3, Group } from 'three';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import { useStore } from '@/app/store/useStore';
 import { SCALE_FACTORS, PLANETS } from '@/app/data/planets';
 import { getPropulsionById, getFlightPhase, calculateDistanceTraveled } from '@/app/data/propulsion';
 import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
 import EngineTrail from './EngineTrail';
 
+// Create a shared ref that can be accessed by the camera
+export const spaceshipGroupRef = { current: null as Group | null };
+
+// Camera update callback - will be set by CameraController
+export const updateCameraCallback = { current: null as ((shipPosition: Vector3) => void) | null };
+
 export default function Spaceship() {
   const bodyRef = useRef<Mesh | null>(null);
   const groupRef = useRef<Group | null>(null);
-  const previousPositionRef = useRef<Vector3 | null>(null);
-
-  // Smoothing refs for high-speed camera stability
-  const smoothedPositionRef = useRef<Vector3>(new Vector3());
-  const isSmoothedInitializedRef = useRef(false);
 
   const {
     journeyStatus,
@@ -186,39 +188,6 @@ export default function Spaceship() {
   // Update spaceship position and rotation
   useFrame((_, delta) => {
     if (groupRef.current && journeyStatus === 'traveling' && selectedPropulsion && destinationPositionAtArrival) {
-      // Initialize smoothed position on first frame
-      if (!isSmoothedInitializedRef.current) {
-        smoothedPositionRef.current.copy(position);
-        isSmoothedInitializedRef.current = true;
-      }
-
-      // Adaptive smoothing: heavier at high speeds, lighter at low speeds
-      // At low speeds (1x-100x): Light smoothing for responsive tracking
-      // At high speeds (10kx+): Heavy smoothing to eliminate jitter
-
-      let smoothFactor: number;
-
-      if (timeSpeed <= 100) {
-        // Low speed: minimal smoothing (0.2 = light, responsive)
-        smoothFactor = 0.2;
-      } else if (timeSpeed <= 1000) {
-        // Medium speed: moderate smoothing
-        smoothFactor = 0.1;
-      } else if (timeSpeed <= 10000) {
-        // High speed: heavy smoothing
-        smoothFactor = 0.05;
-      } else {
-        // Very high speed (>10kx): maximum smoothing to eliminate all jitter
-        smoothFactor = 0.02;
-      }
-
-      // Frame-rate independent smoothing
-      // This ensures consistent behavior at 30fps, 60fps, or 144fps
-      const frameIndependentSmooth = 1 - Math.pow(1 - smoothFactor, delta * 60);
-
-      // Smooth the position - lerp from current smoothed position toward calculated position
-      smoothedPositionRef.current.lerp(position, frameIndependentSmooth);
-
       // Get current flight phase
       const isDecelerating = flightPhase === 'decelerating';
 
@@ -229,7 +198,7 @@ export default function Spaceship() {
         destinationPositionAtArrival.z
       );
       const directionToDestination = new Vector3()
-        .subVectors(destPos, smoothedPositionRef.current)
+        .subVectors(destPos, position)
         .normalize();
 
       // Calculate angle in XZ plane (horizontal rotation)
@@ -241,151 +210,47 @@ export default function Spaceship() {
       // Spaceship model points in +X direction by default (Math.PI / 2 rotation applied in mesh)
       groupRef.current.rotation.y = -angle + (isDecelerating ? Math.PI : 0);
 
-      // Update position with smoothed value
-      groupRef.current.position.copy(smoothedPositionRef.current);
+      // Update position directly - no smoothing
+      groupRef.current.position.copy(position);
 
-      // Store current position for next frame
-      previousPositionRef.current = smoothedPositionRef.current.clone();
+      // Share the group ref so camera can access it directly
+      spaceshipGroupRef.current = groupRef.current;
 
-      // Update the store so camera can follow (using smoothed position)
+      // Update camera immediately in the same frame for zero-lag tracking
+      if (updateCameraCallback.current) {
+        updateCameraCallback.current(position);
+      }
+
+      // Update the store so other components can access ship position
       setSpaceshipPosition([
-        smoothedPositionRef.current.x,
-        smoothedPositionRef.current.y,
-        smoothedPositionRef.current.z
+        position.x,
+        position.y,
+        position.z
       ]);
     }
   });
+
+  // Load the 3D spaceship model
+  const { scene } = useGLTF('/textures/spaceship.glb');
 
   // Only render spaceship when traveling or arrived at destination
   if (journeyStatus !== 'traveling' && journeyStatus !== 'arrived') {
     return null;
   }
 
-  // Scale factor to make spaceship smaller (25% of the 1.25% size = 0.3125% of original)
+  // Scale factor to make spaceship appropriately sized
+  // Adjust this value based on how the model looks in the scene
   const SHIP_SCALE = 0.003125;
 
   return (
     <group ref={groupRef}>
-      {/* Realistic spacecraft design */}
-
-      {/* Main fuselage - elongated body */}
-      <mesh ref={bodyRef} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.25 * SHIP_SCALE, 0.25 * SHIP_SCALE, 1.2 * SHIP_SCALE, 16]} />
-        <meshStandardMaterial color="#c0c0c0" metalness={0.4} roughness={0.6} />
-      </mesh>
-
-      {/* Nose cone - aerodynamic front */}
-      <mesh position={[0.7 * SHIP_SCALE, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <coneGeometry args={[0.25 * SHIP_SCALE, 0.5 * SHIP_SCALE, 16]} />
-        <meshStandardMaterial color="#d0d0d0" metalness={0.3} roughness={0.6} />
-      </mesh>
-
-      {/* Cockpit window - transparent */}
-      <mesh position={[0.5 * SHIP_SCALE, 0, 0.26 * SHIP_SCALE]} rotation={[0, 0, 0]}>
-        <sphereGeometry args={[0.15 * SHIP_SCALE, 16, 16, 0, Math.PI]} />
-        <meshStandardMaterial
-          color="#1a4d7a"
-          metalness={0.5}
-          roughness={0.3}
-          transparent
-          opacity={0.7}
-          emissive="#1a4d7a"
-          emissiveIntensity={0.1}
-        />
-      </mesh>
-
-      {/* Upper solar panel wing */}
-      <group position={[0, 0.25 * SHIP_SCALE, 0]}>
-        <mesh position={[0, 0.5 * SHIP_SCALE, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8 * SHIP_SCALE, 0.02 * SHIP_SCALE, 1.4 * SHIP_SCALE]} />
-          <meshStandardMaterial
-            color="#1a3d5c"
-            metalness={0.4}
-            roughness={0.6}
-            emissive="#0a1d3c"
-            emissiveIntensity={0.1}
-          />
-        </mesh>
-        {/* Solar panel frame */}
-        <mesh position={[0, 0.51 * SHIP_SCALE, 0]}>
-          <boxGeometry args={[0.85 * SHIP_SCALE, 0.01 * SHIP_SCALE, 1.45 * SHIP_SCALE]} />
-          <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.5} />
-        </mesh>
-      </group>
-
-      {/* Lower solar panel wing */}
-      <group position={[0, -0.25 * SHIP_SCALE, 0]}>
-        <mesh position={[0, -0.5 * SHIP_SCALE, 0]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[0.8 * SHIP_SCALE, 0.02 * SHIP_SCALE, 1.4 * SHIP_SCALE]} />
-          <meshStandardMaterial
-            color="#1a3d5c"
-            metalness={0.4}
-            roughness={0.6}
-            emissive="#0a1d3c"
-            emissiveIntensity={0.1}
-          />
-        </mesh>
-        {/* Solar panel frame */}
-        <mesh position={[0, -0.51 * SHIP_SCALE, 0]}>
-          <boxGeometry args={[0.85 * SHIP_SCALE, 0.01 * SHIP_SCALE, 1.45 * SHIP_SCALE]} />
-          <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.5} />
-        </mesh>
-      </group>
-
-      {/* Engine section - rear block */}
-      <mesh position={[-0.65 * SHIP_SCALE, 0, 0]}>
-        <boxGeometry args={[0.3 * SHIP_SCALE, 0.35 * SHIP_SCALE, 0.35 * SHIP_SCALE]} />
-        <meshStandardMaterial color="#a0a0a0" metalness={0.4} roughness={0.6} />
-      </mesh>
-
-      {/* Main engine nozzle - center */}
-      <mesh position={[-0.85 * SHIP_SCALE, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.12 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0.25 * SHIP_SCALE, 16]} />
-        <meshStandardMaterial color="#606060" metalness={0.4} roughness={0.6} />
-      </mesh>
-
-      {/* Top thruster */}
-      <mesh position={[-0.75 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.06 * SHIP_SCALE, 0.08 * SHIP_SCALE, 0.15 * SHIP_SCALE, 12]} />
-        <meshStandardMaterial color="#505050" metalness={0.4} roughness={0.6} />
-      </mesh>
-
-      {/* Bottom thruster */}
-      <mesh position={[-0.75 * SHIP_SCALE, -0.15 * SHIP_SCALE, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.06 * SHIP_SCALE, 0.08 * SHIP_SCALE, 0.15 * SHIP_SCALE, 12]} />
-        <meshStandardMaterial color="#505050" metalness={0.4} roughness={0.6} />
-      </mesh>
-
-      {/* Engine glow - main */}
-      <pointLight position={[-0.95 * SHIP_SCALE, 0, 0]} intensity={0.04} distance={6 * SHIP_SCALE} color="#60a5fa" />
-
-      {/* Engine glow - thrusters */}
-      <pointLight position={[-0.85 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0]} intensity={0.015} distance={3 * SHIP_SCALE} color="#60a5fa" />
-      <pointLight position={[-0.85 * SHIP_SCALE, -0.15 * SHIP_SCALE, 0]} intensity={0.015} distance={3 * SHIP_SCALE} color="#60a5fa" />
-
-      {/* Exhaust glow - main engine */}
-      <mesh position={[-0.95 * SHIP_SCALE, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.12 * SHIP_SCALE, 0.2 * SHIP_SCALE, 16]} />
-        <meshBasicMaterial color="#60a5fa" transparent opacity={0.7} />
-      </mesh>
-
-      {/* Exhaust glow - top thruster */}
-      <mesh position={[-0.82 * SHIP_SCALE, 0.15 * SHIP_SCALE, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.06 * SHIP_SCALE, 0.12 * SHIP_SCALE, 12]} />
-        <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} />
-      </mesh>
-
-      {/* Exhaust glow - bottom thruster */}
-      <mesh position={[-0.82 * SHIP_SCALE, -0.15 * SHIP_SCALE, 0]} rotation={[0, 0, -Math.PI / 2]}>
-        <coneGeometry args={[0.06 * SHIP_SCALE, 0.12 * SHIP_SCALE, 12]} />
-        <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} />
-      </mesh>
-
-      {/* Communication antenna */}
-      <mesh position={[0.2 * SHIP_SCALE, 0.3 * SHIP_SCALE, 0]}>
-        <cylinderGeometry args={[0.01 * SHIP_SCALE, 0.01 * SHIP_SCALE, 0.15 * SHIP_SCALE, 8]} />
-        <meshStandardMaterial color="#808080" metalness={0.5} roughness={0.5} />
-      </mesh>
+      {/* 3D Spaceship Model */}
+      <primitive
+        object={scene.clone()}
+        scale={SHIP_SCALE}
+        rotation={[0, Math.PI / 2, 0]}
+        ref={bodyRef}
+      />
 
       {/* Engine trail particles */}
       <EngineTrail
@@ -396,3 +261,6 @@ export default function Spaceship() {
     </group>
   );
 }
+
+// Preload the model
+useGLTF.preload('/textures/spaceship.glb');

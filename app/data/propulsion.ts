@@ -10,6 +10,7 @@ export type PropulsionType =
   | 'solar-sail'
   | 'nuclear-thermal'
   | 'antimatter'
+  | 'epstein-drive'
   | 'light-speed'
   | 'warp-drive';
 
@@ -202,6 +203,42 @@ export const PROPULSION_SYSTEMS: PropulsionData[] = [
     ],
     color: '#e74c3c',
     icon: '💥'
+  },
+  {
+    id: 'epstein-drive',
+    name: 'Epstein Drive',
+    displayName: 'Epstein Drive (The Expanse)',
+    category: 'Theoretical',
+    maxSpeed: 100000, // km/s (~33% speed of light - set very high to ensure continuous acceleration)
+    acceleration: 14.715, // m/s² (1.5G - safe for continuous human transport)
+    supportsFlipAndBurn: true,
+    description: 'Revolutionary fusion-based rocket from The Expanse. Enables rapid interplanetary travel via continuous high-g acceleration.',
+    technicalDetails: 'Uses magnetic coils to accelerate plasma exhaust from fusion reactions to extremely high velocities. Maintains constant 1.5G thrust, allowing ships to continuously accelerate for the first half of the journey, then flip and decelerate at 1.5G for the second half. Never cruises - always accelerating or decelerating. Travel between Earth and Mars takes just days instead of months.',
+    realWorldExamples: [
+      'Fictional technology from The Expanse book series by James S.A. Corey',
+      'Invented by Dr. Solomon Epstein (fictional character)',
+      'Inspired by real fusion propulsion research',
+      'Conceptually similar to proposed fusion rockets'
+    ],
+    advantages: [
+      'Continuous high-thrust acceleration (1.5G)',
+      'Comfortable for human crews (artificial gravity during travel)',
+      'No cruise phase - always accelerating or decelerating',
+      'Reaches speeds up to ~8000 km/s on long journeys',
+      'Earth to Mars in 3-4 days vs. 6-9 months currently',
+      'Enables routine interplanetary commerce',
+      'Highly efficient fusion-based power'
+    ],
+    limitations: [
+      'Requires breakthrough in fusion technology',
+      'Magnetic acceleration system not yet developed',
+      'Sustained fusion reactions remain challenging',
+      'Must flip exactly at midpoint (complex navigation)',
+      'High fuel requirements for sustained thrust',
+      'Fictional - no experimental validation'
+    ],
+    color: '#1e88e5',
+    icon: '⚛️'
   },
   {
     id: 'light-speed',

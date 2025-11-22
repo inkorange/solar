@@ -8,8 +8,10 @@
   backdrop-filter: blur(10px);
   z-index: 1000;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   animation: fadeIn 0.5s ease;
 
   @keyframes fadeIn {
@@ -194,6 +196,95 @@
 
       &:active {
         transform: translateY(0);
+      }
+    }
+  }
+
+  .newFeature {
+    background: linear-gradient(135deg, rgba(30, 136, 229, 0.15), rgba(96, 165, 250, 0.15));
+    border: 1px solid rgba(30, 136, 229, 0.4);
+    border-radius: 12px;
+    padding: 16px 24px;
+    max-width: 900px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: slideUp 0.6s ease 0.2s backwards;
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .featureImage {
+      flex-shrink: 0;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .featureContent {
+      flex: 1;
+
+      h4 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+        color: #60a5fa;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .badge {
+          background: linear-gradient(135deg, #1e88e5, #60a5fa);
+          color: white;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+      }
+
+      p {
+        font-size: 13px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.8);
+        margin: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      max-width: 90%;
+      flex-direction: column;
+      align-items: center;
+
+      .featureImage {
+        width: 100px;
+        height: 100px;
+      }
+
+      .featureContent {
+        text-align: center;
+
+        h4 {
+          flex-direction: column;
+          gap: 6px;
+        }
       }
     }
   }

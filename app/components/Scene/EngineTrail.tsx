@@ -13,7 +13,7 @@ interface EngineTrailProps {
 }
 
 const PARTICLE_COUNT = 350;
-const PARTICLE_LIFETIME = 1.0; // seconds
+const PARTICLE_LIFETIME = 0.6; // seconds (40% shorter than original 1.0)
 const SHIP_SCALE = 0.003125; // Match spaceship scale (25% of previous size)
 
 export default function EngineTrail({ propulsion, isActive, flightPhase }: EngineTrailProps) {
@@ -31,24 +31,28 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
   // Sizes are 50% smaller than before (additional reduction beyond SHIP_SCALE change)
   const particleConfig = useMemo(() => {
     if (!propulsion) {
-      return { size: 0.075 * SHIP_SCALE, speed: 1.5 * SHIP_SCALE };
+      return { size: 0.075 * SHIP_SCALE, speed: 1.5 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
     }
 
     switch (propulsion) {
       case 'chemical-rocket':
-        return { size: 0.1 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.1 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
       case 'ion-thruster':
-        return { size: 0.06 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
+        return { size: 0.06 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
       case 'solar-sail':
-        return { size: 0, speed: 0 }; // No visible exhaust
+        return { size: 0, speed: 0, lifetime: PARTICLE_LIFETIME }; // No visible exhaust
       case 'nuclear-thermal':
-        return { size: 0.09 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.09 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
       case 'antimatter':
-        return { size: 0.125 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.125 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
+      case 'epstein-drive':
+        return { size: 0.11 * SHIP_SCALE, speed: 7.0 * SHIP_SCALE, lifetime: 0.3 }; // Faster, 40% shorter plume
+      case 'light-speed':
+        return { size: 0.075 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
       case 'warp-drive':
-        return { size: 0.075 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+        return { size: 0.075 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
       default:
-        return { size: 0.075 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE };
+        return { size: 0.075 * SHIP_SCALE, speed: 3.0 * SHIP_SCALE, lifetime: PARTICLE_LIFETIME };
     }
   }, [propulsion]);
 
@@ -81,7 +85,7 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
       positions[i * 3 + 2] = (r3 - 0.5) * 0.15 * SHIP_SCALE; // z (tighter)
 
       // Random age for staggered start
-      ages[i] = r4 * PARTICLE_LIFETIME;
+      ages[i] = r4 * particleConfig.lifetime;
 
       // Initial white color
       colors[i * 3] = 1.0;     // r
@@ -97,7 +101,7 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
     }
 
     return { positions, colors, velocities, ages };
-  }, [isActive, shouldShowEngines, propulsion, particleConfig.speed]);
+  }, [isActive, shouldShowEngines, propulsion, particleConfig.speed, particleConfig.lifetime]);
 
   // Store particle arrays in ref after initial creation (outside render)
   useEffect(() => {
@@ -119,7 +123,7 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
       ages[i] += delta * 1;
 
       // Reset particle if it's too old
-      if (ages[i] > PARTICLE_LIFETIME) {
+      if (ages[i] > particleConfig.lifetime) {
         ages[i] = 0;
         posArray[i * 3] = (-0.85 + Math.random() * 0.1) * SHIP_SCALE;
         posArray[i * 3 + 1] = (Math.random() - 0.5) * 0.15 * SHIP_SCALE;
@@ -131,34 +135,59 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
         posArray[i * 3 + 2] += velocities[i * 3 + 2] * delta * 1;
       }
 
-      // Update color based on age (white → blue → orange → red → fade)
-      const lifeProgress = ages[i] / PARTICLE_LIFETIME;
+      // Update color based on age and propulsion type
+      const lifeProgress = ages[i] / particleConfig.lifetime;
 
-      if (lifeProgress < 0.1) {
-        // Stage 1: White (1,1,1) → Blue (0.2,0.4,1.0) - quick transition
-        const t = lifeProgress / 0.1;
-        colorArray[i * 3] = 1.0 - (0.8 * t);      // r: 1 → 0.2
-        colorArray[i * 3 + 1] = 1.0 - (0.6 * t);  // g: 1 → 0.4
-        colorArray[i * 3 + 2] = 1.0;              // b: stays 1
-      } else if (lifeProgress < 0.3) {
-        // Stage 2: Blue (0.2,0.4,1.0) → Orange (1.0,0.5,0.0)
-        const t = (lifeProgress - 0.1) / 0.2;
-        colorArray[i * 3] = 0.2 + (0.8 * t);      // r: 0.2 → 1.0
-        colorArray[i * 3 + 1] = 0.4 + (0.1 * t);  // g: 0.4 → 0.5
-        colorArray[i * 3 + 2] = 1.0 - t;          // b: 1.0 → 0
-      } else if (lifeProgress < 0.6) {
-        // Stage 3: Orange (1.0,0.5,0.0) → Red (1.0,0,0)
-        const t = (lifeProgress - 0.3) / 0.3;
-        colorArray[i * 3] = 1.0;                  // r: stays 1
-        colorArray[i * 3 + 1] = 0.5 - (0.5 * t);  // g: 0.5 → 0
-        colorArray[i * 3 + 2] = 0;                // b: stays 0
+      // Epstein Drive: white → blue → fade (fusion plasma effect)
+      if (propulsion === 'epstein-drive') {
+        if (lifeProgress < 0.2) {
+          // Stage 1: White (1,1,1) → Bright Blue (0.3,0.6,1.0)
+          const t = lifeProgress / 0.2;
+          colorArray[i * 3] = 1.0 - (0.7 * t);      // r: 1 → 0.3
+          colorArray[i * 3 + 1] = 1.0 - (0.4 * t);  // g: 1 → 0.6
+          colorArray[i * 3 + 2] = 1.0;              // b: stays 1
+        } else if (lifeProgress < 0.5) {
+          // Stage 2: Bright Blue (0.3,0.6,1.0) → Deep Blue (0.1,0.3,0.9)
+          const t = (lifeProgress - 0.2) / 0.3;
+          colorArray[i * 3] = 0.3 - (0.2 * t);      // r: 0.3 → 0.1
+          colorArray[i * 3 + 1] = 0.6 - (0.3 * t);  // g: 0.6 → 0.3
+          colorArray[i * 3 + 2] = 1.0 - (0.1 * t);  // b: 1.0 → 0.9
+        } else {
+          // Stage 3: Deep Blue fades to transparent
+          const t = (lifeProgress - 0.5) / 0.5;
+          const fade = 1.0 - t;
+          colorArray[i * 3] = 0.1 * fade;           // r fades
+          colorArray[i * 3 + 1] = 0.3 * fade;       // g fades
+          colorArray[i * 3 + 2] = 0.9 * fade;       // b fades
+        }
       } else {
-        // Stage 4: Red fades to transparent
-        const t = (lifeProgress - 0.6) / 0.4;
-        const fade = 1.0 - t;
-        colorArray[i * 3] = fade;                 // r fades
-        colorArray[i * 3 + 1] = 0;                // g stays 0
-        colorArray[i * 3 + 2] = 0;                // b stays 0
+        // Other propulsion: white → blue → orange → red → fade (chemical rocket effect)
+        if (lifeProgress < 0.1) {
+          // Stage 1: White (1,1,1) → Blue (0.2,0.4,1.0) - quick transition
+          const t = lifeProgress / 0.1;
+          colorArray[i * 3] = 1.0 - (0.8 * t);      // r: 1 → 0.2
+          colorArray[i * 3 + 1] = 1.0 - (0.6 * t);  // g: 1 → 0.4
+          colorArray[i * 3 + 2] = 1.0;              // b: stays 1
+        } else if (lifeProgress < 0.3) {
+          // Stage 2: Blue (0.2,0.4,1.0) → Orange (1.0,0.5,0.0)
+          const t = (lifeProgress - 0.1) / 0.2;
+          colorArray[i * 3] = 0.2 + (0.8 * t);      // r: 0.2 → 1.0
+          colorArray[i * 3 + 1] = 0.4 + (0.1 * t);  // g: 0.4 → 0.5
+          colorArray[i * 3 + 2] = 1.0 - t;          // b: 1.0 → 0
+        } else if (lifeProgress < 0.6) {
+          // Stage 3: Orange (1.0,0.5,0.0) → Red (1.0,0,0)
+          const t = (lifeProgress - 0.3) / 0.3;
+          colorArray[i * 3] = 1.0;                  // r: stays 1
+          colorArray[i * 3 + 1] = 0.5 - (0.5 * t);  // g: 0.5 → 0
+          colorArray[i * 3 + 2] = 0;                // b: stays 0
+        } else {
+          // Stage 4: Red fades to transparent
+          const t = (lifeProgress - 0.6) / 0.4;
+          const fade = 1.0 - t;
+          colorArray[i * 3] = fade;                 // r fades
+          colorArray[i * 3 + 1] = 0;                // g stays 0
+          colorArray[i * 3 + 2] = 0;                // b stays 0
+        }
       }
     }
 
