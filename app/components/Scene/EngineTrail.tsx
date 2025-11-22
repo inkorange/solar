@@ -45,6 +45,10 @@ export default function EngineTrail({ propulsion, isActive, flightPhase }: Engin
         return { size: 0.09 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'antimatter':
         return { size: 0.125 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
+      case 'epstein-drive':
+        return { size: 0.11 * SHIP_SCALE, speed: 4.5 * SHIP_SCALE };
+      case 'light-speed':
+        return { size: 0.075 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       case 'warp-drive':
         return { size: 0.075 * SHIP_SCALE, speed: 4.0 * SHIP_SCALE };
       default:
