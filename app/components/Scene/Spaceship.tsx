@@ -5,9 +5,9 @@ import { Mesh, Vector3, Group } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { useStore } from '@/app/store/useStore';
-import { SCALE_FACTORS, PLANETS } from '@/app/data/planets';
+import { SCALE_FACTORS, PLANETS, DWARF_PLANETS } from '@/app/data/planets';
 import { getPropulsionById, getFlightPhase, calculateDistanceTraveled } from '@/app/data/propulsion';
-import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
+import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import EngineTrail from './EngineTrail';
 
 // Create a shared ref that can be accessed by the camera
@@ -40,22 +40,26 @@ export default function Spaceship() {
   // Calculate current position during journey
   const position = useMemo(() => {
     const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
+    const allBodies = [...PLANETS, ...DWARF_PLANETS]; // Declare once for use throughout
 
     // If we've arrived at a destination, stay on the planet's surface as it orbits
     if (journeyStatus === 'arrived' && destination && origin) {
+
       // Get destination's current orbital position
-      const destPosData = calculateEllipticalOrbitPosition(
+      const destPosData = calculateCelestialBodyPosition(
         simulationTime,
         destination,
-        scaleFactor.DISTANCE
+        scaleFactor.DISTANCE,
+        allBodies
       );
       const destCenter = new Vector3(destPosData.x, destPosData.y, destPosData.z);
 
       // Get origin's position at journey start to calculate approach direction
-      const originPosData = calculateEllipticalOrbitPosition(
+      const originPosData = calculateCelestialBodyPosition(
         journeyStartTime,
         origin,
-        scaleFactor.DISTANCE
+        scaleFactor.DISTANCE,
+        allBodies
       );
       const originCenter = new Vector3(originPosData.x, originPosData.y, originPosData.z);
 
@@ -87,10 +91,12 @@ export default function Spaceship() {
     }
 
     // Origin position at journey start time (departure point - planet center)
-    const originPosData = calculateEllipticalOrbitPosition(
+    const originPosData = calculateCelestialBodyPosition(
       journeyStartTime,
       origin,
-      scaleFactor.DISTANCE
+      scaleFactor.DISTANCE,
+      allBodies,
+      scaleMode
     );
     const originCenterPos = new Vector3(originPosData.x, originPosData.y, originPosData.z);
 
@@ -136,10 +142,13 @@ export default function Spaceship() {
     const targetTime = journeyStartTime + (arrivalTime - journeyStartTime) * physicsProgress;
 
     // Get destination's position at the TARGET time (interpolated between start and predicted arrival)
-    const destTargetPosData = calculateEllipticalOrbitPosition(
+    // Use calculateCelestialBodyPosition to handle both planets and moons (like the Moon orbiting Earth)
+    const destTargetPosData = calculateCelestialBodyPosition(
       targetTime,
       destination,
-      scaleFactor.DISTANCE
+      scaleFactor.DISTANCE,
+      allBodies,
+      scaleMode
     );
     const destTargetCenterPos = new Vector3(destTargetPosData.x, destTargetPosData.y, destTargetPosData.z);
 

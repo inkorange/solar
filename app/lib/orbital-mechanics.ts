@@ -3,7 +3,8 @@
  * Implements realistic elliptical orbit calculations based on Kepler's laws
  */
 
-import { PlanetData } from '../data/planets';
+import { PlanetData, SCALE_FACTORS } from '../data/planets';
+import { MoonData, MOONS } from '../data/moons';
 
 /**
  * J2000.0 epoch Julian Date (January 1, 2000, noon TT)
@@ -237,7 +238,8 @@ export function calculateInterceptCourse(
   destination: PlanetData,
   currentTime: number,
   scaleFactor: number,
-  travelTimeCalculator: (distanceKm: number) => number
+  travelTimeCalculator: (distanceKm: number) => number,
+  allBodies?: PlanetData[]
 ): {
   distance: number;
   arrivalTime: number;
@@ -247,7 +249,8 @@ export function calculateInterceptCourse(
   const AU_TO_KM = 149597870.7;
 
   // Get origin position at current time (departure time)
-  const originPos = calculateEllipticalOrbitPosition(currentTime, origin, scaleFactor);
+  // Use universal calculator to handle both planets and moons
+  const originPos = calculateCelestialBodyPosition(currentTime, origin, scaleFactor, allBodies);
 
   // Calculate planet radii in km
   const originRadiusKm = origin.diameter / 2; // diameter is in km
@@ -261,7 +264,8 @@ export function calculateInterceptCourse(
   // Iterate to convergence (usually converges in 3-5 iterations)
   for (let iteration = 0; iteration < 10; iteration++) {
     // Calculate where destination will be at the estimated arrival time
-    destinationPos = calculateEllipticalOrbitPosition(arrivalTime, destination, scaleFactor);
+    // Use universal calculator to handle both planets and moons
+    destinationPos = calculateCelestialBodyPosition(arrivalTime, destination, scaleFactor, allBodies);
 
     // Calculate center-to-center distance from origin (at departure) to destination (at arrival)
     const dx = destinationPos.x - originPos.x;
@@ -298,4 +302,245 @@ export function calculateInterceptCourse(
     destinationPositionAtArrival: destinationPos,
     originPositionAtDeparture: originPos,
   };
+}
+
+/**
+ * Calculate Moon's position relative to Earth
+ * @param time Current simulation time in seconds
+ * @param moonData Moon data with orbital parameters
+ * @param moonScaleFactor Scale multiplier for moon distances (MOON_DISTANCE from SCALE_FACTORS)
+ * @returns {x, y, z} position relative to Earth
+ */
+export function calculateMoonPositionRelativeToEarth(
+  time: number,
+  moonData: MoonData,
+  moonScaleFactor: number
+): { x: number; y: number; z: number } {
+  const { distanceFromPlanet, orbitalPeriod, orbitalEccentricity, orbitalInclination } = moonData;
+
+  // Convert orbital period from days to seconds
+  const periodSeconds = orbitalPeriod * 24 * 60 * 60;
+
+  // Mean anomaly (angle traveled as if in circular orbit)
+  const meanAnomaly = (2 * Math.PI * time) / periodSeconds;
+
+  // Solve Kepler's equation for eccentric anomaly
+  let eccentricAnomaly = meanAnomaly;
+  for (let i = 0; i < 5; i++) {
+    eccentricAnomaly =
+      meanAnomaly +
+      orbitalEccentricity * Math.sin(eccentricAnomaly);
+  }
+
+  // True anomaly (actual angle from periapsis)
+  const trueAnomaly = 2 * Math.atan2(
+    Math.sqrt(1 + orbitalEccentricity) * Math.sin(eccentricAnomaly / 2),
+    Math.sqrt(1 - orbitalEccentricity) * Math.cos(eccentricAnomaly / 2)
+  );
+
+  // Distance from Earth (varies with position in ellipse)
+  const semiMajorAxis = distanceFromPlanet; // km
+  const distance =
+    (semiMajorAxis * (1 - orbitalEccentricity * orbitalEccentricity)) /
+    (1 + orbitalEccentricity * Math.cos(trueAnomaly));
+
+  // Convert km to AU, then scale for visualization
+  // Moon distances need special scaling to be visible in the scene
+  const AU_TO_KM = 149597870.7;
+  const distanceAU = distance / AU_TO_KM;
+  const scaledDistance = distanceAU * moonScaleFactor;
+
+  // Position in orbital plane (2D)
+  const xOrbital = scaledDistance * Math.cos(trueAnomaly);
+  const yOrbital = scaledDistance * Math.sin(trueAnomaly);
+
+  // Apply orbital inclination to create 3D position
+  const inclinationRadians = (orbitalInclination * Math.PI) / 180;
+
+  const x = xOrbital;
+  const y = yOrbital * Math.sin(inclinationRadians);
+  const z = yOrbital * Math.cos(inclinationRadians);
+
+  return { x, y, z };
+}
+
+/**
+ * Calculate Moon's heliocentric position (position relative to Sun)
+ * This is Earth's position + Moon's offset from Earth
+ * @param time Current simulation time in seconds
+ * @param earthData Earth's planet data
+ * @param moonData Moon's orbital data
+ * @param planetScaleFactor Scale multiplier for planet distances (DISTANCE from SCALE_FACTORS)
+ * @param moonScaleFactor Scale multiplier for moon distances (MOON_DISTANCE from SCALE_FACTORS)
+ * @returns {x, y, z} heliocentric position
+ */
+export function calculateMoonHeliocentricPosition(
+  time: number,
+  earthData: PlanetData,
+  moonData: MoonData,
+  planetScaleFactor: number,
+  moonScaleFactor: number
+): { x: number; y: number; z: number } {
+  // Get Earth's heliocentric position using planet scale factor
+  const earthPos = calculateEllipticalOrbitPosition(time, earthData, planetScaleFactor);
+
+  // Get Moon's position relative to Earth using moon scale factor
+  const moonRelativePos = calculateMoonPositionRelativeToEarth(time, moonData, moonScaleFactor);
+
+  console.log('[calculateMoonHeliocentricPosition] Earth pos:', earthPos);
+  console.log('[calculateMoonHeliocentricPosition] Moon relative pos:', moonRelativePos);
+  console.log('[calculateMoonHeliocentricPosition] time:', time);
+  console.log('[calculateMoonHeliocentricPosition] planetScaleFactor:', planetScaleFactor);
+  console.log('[calculateMoonHeliocentricPosition] moonScaleFactor:', moonScaleFactor);
+
+  // Combine: Moon's heliocentric position = Earth's position + Moon's offset
+  return {
+    x: earthPos.x + moonRelativePos.x,
+    y: earthPos.y + moonRelativePos.y,
+    z: earthPos.z + moonRelativePos.z,
+  };
+}
+
+/**
+ * Universal position calculator that handles both planets and moons
+ * @param time Current simulation time in seconds
+ * @param body Planet or moon data
+ * @param scaleFactor Scale multiplier for planet distances (DISTANCE from SCALE_FACTORS)
+ * @param allBodies Optional array of all celestial bodies (needed to find parent planet for moons)
+ * @param scaleMode Optional scale mode ('visual' or 'realistic') for determining moon scale factor
+ * @returns {x, y, z} heliocentric position
+ */
+export function calculateCelestialBodyPosition(
+  time: number,
+  body: PlanetData,
+  scaleFactor: number,
+  allBodies?: PlanetData[],
+  scaleMode: 'visual' | 'realistic' = 'visual'
+): { x: number; y: number; z: number } {
+  // If this is the Moon (or any moon), calculate its heliocentric position
+  if (body.isMoon && body.parentPlanet && body.distanceFromPlanet && body.orbitalPeriod) {
+    // Find the parent planet
+    const parentPlanet = allBodies?.find(b => b.name === body.parentPlanet && !b.isMoon);
+
+    if (parentPlanet) {
+      // Get the appropriate moon scale factor based on scale mode
+      const moonScaleFactor = scaleMode === 'visual'
+        ? SCALE_FACTORS.VISUAL.MOON_DISTANCE
+        : SCALE_FACTORS.REALISTIC.MOON_DISTANCE;
+
+      // Use the body directly as it has all the moon properties we need
+      return calculateMoonHeliocentricPosition(
+        time,
+        parentPlanet,
+        body as any, // The body has moon properties (distanceFromPlanet, etc.)
+        scaleFactor,
+        moonScaleFactor
+      );
+    }
+
+    // Fallback to regular calculation if parent not found
+    return calculateEllipticalOrbitPosition(time, body, scaleFactor);
+  }
+
+  // Regular planet calculation
+  return calculateEllipticalOrbitPosition(time, body, scaleFactor);
+}
+
+/**
+ * Generate orbit path for a moon around its parent planet
+ * @param moonData Moon data with orbital parameters
+ * @param parentPlanet Parent planet data
+ * @param time Current simulation time
+ * @param planetScaleFactor Scale factor for planet distances
+ * @param moonScaleFactor Scale factor for moon distances
+ * @param segments Number of segments in the orbit path
+ * @param allBodies All celestial bodies for position calculations
+ * @returns Array of {x, y, z} points forming the moon's orbit
+ */
+export function generateMoonOrbitPath(
+  moonData: PlanetData,
+  parentPlanet: PlanetData,
+  time: number,
+  planetScaleFactor: number,
+  moonScaleFactor: number,
+  allBodies: PlanetData[],
+  segments: number = 128
+): Array<{ x: number; y: number; z: number }> {
+  const points: Array<{ x: number; y: number; z: number }> = [];
+
+  if (!moonData.distanceFromPlanet || !moonData.orbitalPeriod) {
+    return points;
+  }
+
+  // Get parent planet's current position using the SAME method as Moon position calculation
+  // IMPORTANT: Use calculateEllipticalOrbitPosition directly to match calculateMoonHeliocentricPosition
+  const parentPos = calculateEllipticalOrbitPosition(
+    time,
+    parentPlanet,
+    planetScaleFactor
+  );
+
+  console.log('[generateMoonOrbitPath] Earth position:', parentPos);
+  console.log('[generateMoonOrbitPath] time:', time);
+  console.log('[generateMoonOrbitPath] planetScaleFactor:', planetScaleFactor);
+  console.log('[generateMoonOrbitPath] moonScaleFactor:', moonScaleFactor);
+
+  // Moon's orbital parameters
+  const distanceFromPlanet = moonData.distanceFromPlanet; // km
+  const orbitalInclination = moonData.orbitalInclination || 0; // degrees
+  const orbitalEccentricity = moonData.orbitalEccentricity || 0;
+
+  const AU_TO_KM = 149597870.7;
+
+  // Generate points around the orbit
+  // IMPORTANT: Use Kepler's laws to calculate true anomaly, just like the actual Moon position
+  for (let i = 0; i <= segments; i++) {
+    // Mean anomaly: uniform angle distribution around orbit
+    const meanAnomaly = (i / segments) * Math.PI * 2;
+
+    // Solve Kepler's equation for eccentric anomaly
+    let eccentricAnomaly = meanAnomaly;
+    for (let j = 0; j < 5; j++) {
+      eccentricAnomaly =
+        meanAnomaly +
+        orbitalEccentricity * Math.sin(eccentricAnomaly);
+    }
+
+    // True anomaly (actual angle from periapsis)
+    // This is what the Moon's position calculation uses!
+    const trueAnomaly = 2 * Math.atan2(
+      Math.sqrt(1 + orbitalEccentricity) * Math.sin(eccentricAnomaly / 2),
+      Math.sqrt(1 - orbitalEccentricity) * Math.cos(eccentricAnomaly / 2)
+    );
+
+    // Distance from Earth (varies with position in ellipse)
+    // IMPORTANT: Calculate elliptical distance in km FIRST, then convert to scene units
+    // This matches the calculation order in calculateMoonPositionRelativeToEarth
+    const semiMajorAxis = distanceFromPlanet; // km
+    const distanceKm =
+      (semiMajorAxis * (1 - orbitalEccentricity * orbitalEccentricity)) /
+      (1 + orbitalEccentricity * Math.cos(trueAnomaly));
+
+    // Convert km to AU, then scale for visualization
+    const distanceAU = distanceKm / AU_TO_KM;
+    const scaledDistance = distanceAU * moonScaleFactor;
+
+    const xOrbital = scaledDistance * Math.cos(trueAnomaly);
+    const yOrbital = scaledDistance * Math.sin(trueAnomaly);
+
+    // Apply orbital inclination
+    const inclinationRadians = (orbitalInclination * Math.PI) / 180;
+    const x = xOrbital;
+    const y = yOrbital * Math.sin(inclinationRadians);
+    const z = yOrbital * Math.cos(inclinationRadians);
+
+    // Add parent planet's position to get heliocentric coordinates
+    points.push({
+      x: parentPos.x + x,
+      y: parentPos.y + y,
+      z: parentPos.z + z,
+    });
+  }
+
+  return points;
 }

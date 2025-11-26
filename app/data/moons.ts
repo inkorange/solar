@@ -34,28 +34,8 @@ export interface MoonData {
 }
 
 export const MOONS: MoonData[] = [
-  // Earth's Moon
-  {
-    name: "Moon",
-    parentPlanet: "Earth",
-    color: "#c0c0c0",
-    texture: "/textures/moon.jpg",
-    diameter: 3474,
-    mass: 1.0, // Reference (Earth's Moon = 1)
-    gravity: 1.62,
-    distanceFromPlanet: 384400,
-    orbitalPeriod: 27.3,
-    orbitalSpeed: 1.022,
-    orbitalEccentricity: 0.0549,
-    orbitalInclination: 5.14,
-    tidally_locked: true,
-    facts: [
-      "Only natural satellite of Earth",
-      "Fifth largest moon in the solar system",
-      "Same side always faces Earth (tidally locked)",
-      "Causes tides on Earth through gravitational interaction"
-    ]
-  },
+  // NOTE: Earth's Moon is now in the PLANETS array (planets.ts) to enable it as a travel destination
+  // It is rendered as a Planet component, not a Moon component
 
   // Jupiter's Galilean Moons
   {
@@ -577,7 +557,7 @@ export function getMoonsForPlanet(planetName: string): MoonData[] {
 export const MOON_COUNTS = {
   Mercury: 0,
   Venus: 0,
-  Earth: 1,
+  Earth: 0, // Moon is now in PLANETS array for travel functionality
   Mars: 2, // Phobos and Deimos (sprites)
   Jupiter: 6, // Galilean moons (3D) + Amalthea, Himalia (sprites)
   Saturn: 8, // Titan (3D), Enceladus, Rhea (3D) + Mimas, Tethys, Dione, Iapetus (sprites)

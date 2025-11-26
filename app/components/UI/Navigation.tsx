@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useStore } from '@/app/store/useStore';
 import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
-import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
+import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import styles from './Navigation.module.scss';
 
 export default function Navigation() {
@@ -30,6 +30,7 @@ export default function Navigation() {
     : allBodies;
 
   const terrestrialPlanets = filteredBodies.filter(p => p.type === 'Terrestrial');
+  const satellites = filteredBodies.filter(p => p.type === 'Natural Satellite');
   const gasGiants = filteredBodies.filter(p => p.type.includes('Giant'));
   const dwarfPlanets = filteredBodies.filter(p => p.type === 'Dwarf Planet');
 
@@ -38,10 +39,12 @@ export default function Navigation() {
 
     // Calculate planet's current position
     const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-    const position = calculateEllipticalOrbitPosition(
+    const position = calculateCelestialBodyPosition(
       simulationTime,
       planet,
-      scaleFactor.DISTANCE
+      scaleFactor.DISTANCE,
+      allBodies,
+      scaleMode
     );
 
     // Calculate camera distance based on planet size
@@ -139,6 +142,30 @@ export default function Navigation() {
                 {planet.name === 'Venus' && '♀'}
                 {planet.name === 'Earth' && '🌍'}
                 {planet.name === 'Mars' && '♂'}
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+        </>
+      )}
+
+      {satellites.length > 0 && (
+        <>
+          <div className={styles.groupTitle}>Satellites</div>
+      <ul className={styles.planetList}>
+        {satellites.map((planet) => (
+          <li key={planet.name}>
+            <button
+              className={`${styles.planetButton} ${selectedPlanet?.name === planet.name ? styles.selected : ''}`}
+              onClick={() => handlePlanetClick(planet)}
+            >
+              <div>
+                <div className={styles.planetName}>{planet.name}</div>
+                <div className={styles.planetType}>{planet.parentPlanet}</div>
+              </div>
+              <div style={{ fontSize: '18px' }}>
+                {planet.name === 'Moon' && '🌙'}
               </div>
             </button>
           </li>
