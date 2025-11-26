@@ -4,10 +4,10 @@ import { useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import { Vector3 } from 'three';
-import { SCALE_FACTORS, PlanetData } from '@/app/data/planets';
+import { SCALE_FACTORS, PlanetData, PLANETS, DWARF_PLANETS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import { generateEllipticalOrbitPath } from '@/app/lib/orbital-mechanics';
-import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
+import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 
 interface OrbitProps {
   planetData: PlanetData;
@@ -63,14 +63,17 @@ export default function Orbit({ planetData, color = '#ffffff', opacity = 0.2 }: 
   // Calculate atmospheric perspective based on camera distance
   useFrame(() => {
     // Get planet's current position
-    const planetPos = calculateEllipticalOrbitPosition(
+    const allBodies = [...PLANETS, ...DWARF_PLANETS];
+    const planetPos = calculateCelestialBodyPosition(
       simulationTime,
       planetData,
-      scaleFactor.DISTANCE
+      scaleFactor.DISTANCE,
+      allBodies,
+      scaleMode
     );
 
     // Calculate distance from camera to planet
-    // calculateEllipticalOrbitPosition returns { x, y, z } (including y for inclined orbits)
+    // calculateCelestialBodyPosition returns { x, y, z } (including y for inclined orbits)
     const distance = camera.position.distanceTo(new Vector3(planetPos.x, planetPos.y, planetPos.z));
 
     // Apply atmospheric perspective: closer = more opaque, farther = more transparent
@@ -95,6 +98,9 @@ export default function Orbit({ planetData, color = '#ffffff', opacity = 0.2 }: 
   });
 
   if (!showOrbits) return null;
+
+  // Don't render orbital path for moons - they orbit their parent planet, not the Sun
+  if (planetData.isMoon) return null;
 
   // Hide orbits for distant dwarf planets (except Pluto) to reduce clutter
   const hiddenOrbits = ['Eris', 'Haumea', 'Makemake'];

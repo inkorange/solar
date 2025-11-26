@@ -148,7 +148,7 @@ export default function InfoPanel() {
         </div>
       </div>
 
-      {journeyStatus === 'idle' && !isMoon && (
+      {journeyStatus === 'idle' && (
         <div className={styles.stickyFooter}>
           <button className={styles.travelButton} onClick={handleTravelTo}>
             🚀 Travel to {selectedPlanet.name}

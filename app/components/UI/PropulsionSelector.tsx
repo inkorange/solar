@@ -50,7 +50,8 @@ export default function PropulsionSelector() {
         destination,
         simulationTime,
         scaleFactor.DISTANCE,
-        (distanceKm) => calculateTravelTime(distanceKm, propulsion, useFlipAndBurn)
+        (distanceKm) => calculateTravelTime(distanceKm, propulsion, useFlipAndBurn),
+        PLANETS // Pass all planets/moons for Moon position calculation
       );
       courses.set(propulsion.id, course);
     });

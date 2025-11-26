@@ -3,12 +3,12 @@
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Mesh, TextureLoader, Group } from 'three';
-import { PlanetData, SCALE_FACTORS } from '@/app/data/planets';
+import { PlanetData, SCALE_FACTORS, PLANETS, DWARF_PLANETS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import { Html } from '@react-three/drei';
 import PlanetRings from './PlanetRings';
 import Atmosphere from './Atmosphere';
-import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
+import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 
 interface PlanetProps {
   data: PlanetData;
@@ -42,13 +42,17 @@ export default function Planet({ data }: PlanetProps) {
   const planetSize = (data.diameter / 12742) * scaleFactor.SIZE * 5; // Relative to Earth
 
   // Calculate position based on elliptical orbital mechanics
+  // Use universal calculator to handle both planets and moons (like the Moon orbiting Earth)
   const orbitalPosition = useMemo(() => {
-    return calculateEllipticalOrbitPosition(
+    const allBodies = [...PLANETS, ...DWARF_PLANETS];
+    return calculateCelestialBodyPosition(
       simulationTime,
       data,
-      scaleFactor.DISTANCE
+      scaleFactor.DISTANCE,
+      allBodies,
+      scaleMode
     );
-  }, [simulationTime, data, scaleFactor.DISTANCE]);
+  }, [simulationTime, data, scaleFactor.DISTANCE, scaleMode]);
 
   // Rotate planet on its axis
   useFrame((state, delta) => {

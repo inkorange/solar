@@ -44,6 +44,12 @@ export interface PlanetData {
     opacity?: number; // Ring opacity (0-1)
   };
   facts: string[];
+
+  // Special flags for satellites
+  isMoon?: boolean; // True if this is a moon/satellite
+  parentPlanet?: string; // Name of parent planet for moons
+  distanceFromPlanet?: number; // Distance from parent planet in km (for moons)
+  tidally_locked?: boolean; // Whether the moon is tidally locked to its parent
 }
 
 export const PLANETS: PlanetData[] = [
@@ -136,6 +142,43 @@ export const PLANETS: PlanetData[] = [
       "Has a protective magnetic field",
       "The densest planet in the solar system"
     ]
+  },
+  {
+    name: "Moon",
+    type: "Natural Satellite",
+    color: "#c0c0c0",
+    texture: "/textures/moon.jpg",
+    diameter: 3474,
+    mass: 0.0123, // Relative to Earth (Moon mass = 0.0123 Earth mass)
+    gravity: 1.62,
+    distanceFromSun: 1.0, // Average (Earth's distance, since Moon orbits Earth)
+    orbitalPeriod: 27.3, // Around Earth
+    orbitalSpeed: 1.022, // Relative to Earth
+    orbitalEccentricity: 0.0549,
+    orbitalInclination: 5.14, // Relative to Earth's orbit
+
+    // Special orbital elements for Moon (not used directly, calculated from Earth's position)
+    meanLongitudeJ2000: 0, // Not applicable for moons
+    meanLongitudeRate: 0, // Not applicable for moons
+
+    rotationPeriod: 27.3, // Tidally locked
+    axialTilt: 6.7,
+    atmosphere: ["Trace"],
+    moons: 0,
+    hasRings: false,
+    facts: [
+      "Only natural satellite of Earth",
+      "Fifth largest moon in the solar system",
+      "Same side always faces Earth (tidally locked)",
+      "Causes tides on Earth through gravitational interaction",
+      "First celestial body visited by humans (Apollo 11, 1969)"
+    ],
+
+    // Moon-specific flags
+    isMoon: true,
+    parentPlanet: "Earth",
+    distanceFromPlanet: 384400, // km from Earth
+    tidally_locked: true
   },
   {
     name: "Mars",

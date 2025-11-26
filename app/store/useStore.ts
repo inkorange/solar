@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { PlanetData, SCALE_FACTORS } from '../data/planets';
+import { PlanetData, SCALE_FACTORS, PLANETS } from '../data/planets';
 import { PropulsionType } from '../data/propulsion';
-import { calculateEllipticalOrbitPosition } from '../lib/orbital-mechanics';
+import { calculateCelestialBodyPosition } from '../lib/orbital-mechanics';
 
 export type CameraMode = 'free' | 'follow-spaceship' | 'planet-focus' | 'destination-preview';
 export type ScaleMode = 'visual' | 'realistic';
@@ -148,10 +148,12 @@ export const useStore = create<AppState>((set) => ({
 
       // Calculate camera position for the destination planet (same logic as Navigation.tsx)
       const scaleFactor = state.scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-      const position = calculateEllipticalOrbitPosition(
+      const position = calculateCelestialBodyPosition(
         state.simulationTime,
         state.destination,
-        scaleFactor.DISTANCE
+        scaleFactor.DISTANCE,
+        PLANETS,
+        state.scaleMode
       );
 
       // Calculate camera distance based on planet size

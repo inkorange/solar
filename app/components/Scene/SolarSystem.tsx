@@ -16,6 +16,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import Sun from './Sun';
 import Planet from './Planet';
 import Orbit from './Orbit';
+import MoonOrbit from './MoonOrbit';
 import Stars from './Stars';
 import Spaceship, { spaceshipGroupRef, updateCameraCallback } from './Spaceship';
 import Moon from './Moon';
@@ -25,7 +26,7 @@ import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
 import { getMoonsForPlanet } from '@/app/data/moons';
 import { ASTEROIDS } from '@/app/data/asteroids';
 import { useStore } from '@/app/store/useStore';
-import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
+import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import { getPropulsionById, calculateDistanceTraveled, calculateCurrentSpeed, getFlightPhase, calculateTravelTime } from '@/app/data/propulsion';
 
 function SceneUpdater() {
@@ -181,7 +182,7 @@ function CameraController() {
 
     const { scaleMode, simulationTime } = useStore.getState();
     const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-    const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
+    const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
 
     // Setup animation
     animationRef.current = {
@@ -223,7 +224,7 @@ function CameraController() {
           if (planet) {
             const { scaleMode, simulationTime } = useStore.getState();
             const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-            const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
+            const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
             const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
 
             // Set the camera offset based on final animated position
@@ -240,36 +241,49 @@ function CameraController() {
       if (!cameraOffsetRef.current && spaceshipGroupRef.current) {
         const shipPos = spaceshipGroupRef.current.position.clone();
 
-        // Get Earth's position for initial camera angle
-        const earth = PLANETS.find(p => p.name === 'Earth');
-        if (earth) {
+        // Get the actual travel direction from origin to destination
+        const { origin, destinationPositionAtArrival } = useStore.getState();
+
+        let travelDirection = new Vector3(0, 0, 1); // Default fallback direction
+
+        if (origin && destinationPositionAtArrival) {
+          // Calculate origin position
           const { scaleMode, simulationTime } = useStore.getState();
           const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-          const earthPos = calculateEllipticalOrbitPosition(simulationTime, earth, scaleFactor.DISTANCE);
-          const earthPosVec = new Vector3(earthPos.x, earthPos.y, earthPos.z);
+          const allBodies = [...PLANETS, ...DWARF_PLANETS];
+          const originPos = calculateCelestialBodyPosition(simulationTime, origin, scaleFactor.DISTANCE, allBodies);
+          const originPosVec = new Vector3(originPos.x, originPos.y, originPos.z);
 
-          // Calculate direction from Earth to ship (ship's travel direction)
-          const earthToShip = shipPos.clone().sub(earthPosVec).normalize();
+          // Destination's predicted arrival position
+          const destPosVec = new Vector3(
+            destinationPositionAtArrival.x,
+            destinationPositionAtArrival.y,
+            destinationPositionAtArrival.z
+          );
 
-          // Position camera to show ship filling ~15% of screen
-          // Ship is roughly 0.00625 units long (SHIP_SCALE 0.003125 * 2)
-          // To fill 15% of screen with FOV 60°, camera should be ~4x ship length away
-          const shipLength = 0.00625;
-          const cameraDistance = shipLength * 4; // ~0.025 units - close enough for 15% screen fill
-          const cameraHeight = cameraDistance * 0.25; // Slightly above for better view
-
-          const offsetPos = earthToShip.clone().multiplyScalar(-cameraDistance)
-            .add(new Vector3(0, cameraHeight, 0));
-
-          // Store the offset relative to ship position
-          cameraOffsetRef.current = offsetPos;
-
-          // Set initial camera position and look-at target
-          const initialCameraPos = shipPos.clone().add(offsetPos);
-          camera.position.copy(initialCameraPos);
-          controlsRef.current.target.copy(shipPos);
-          controlsRef.current.update();
+          // Calculate the actual travel direction (from origin to destination intercept point)
+          travelDirection = new Vector3().subVectors(destPosVec, originPosVec).normalize();
         }
+
+        // Position camera BEHIND the ship along the travel direction
+        // Ship is roughly 0.00625 units long (SHIP_SCALE 0.003125 * 2)
+        // To fill 15% of screen with FOV 60°, camera should be ~4x ship length away
+        const shipLength = 0.00625;
+        const cameraDistance = shipLength * 4; // ~0.025 units - close enough for 15% screen fill
+        const cameraHeight = cameraDistance * 0.25; // Slightly above for better view
+
+        // Offset BEHIND the ship (negative travel direction)
+        const offsetPos = travelDirection.clone().multiplyScalar(-cameraDistance)
+          .add(new Vector3(0, cameraHeight, 0));
+
+        // Store the offset relative to ship position
+        cameraOffsetRef.current = offsetPos;
+
+        // Set initial camera position and look-at target
+        const initialCameraPos = shipPos.clone().add(offsetPos);
+        camera.position.copy(initialCameraPos);
+        controlsRef.current.target.copy(shipPos);
+        controlsRef.current.update();
       }
       // Camera updates are now handled by the callback from ship's useFrame
     } else if (cameraMode === 'planet-focus' && focusedPlanetName) {
@@ -279,7 +293,7 @@ function CameraController() {
       if (planet) {
         const { scaleMode, simulationTime } = useStore.getState();
         const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-        const planetPos = calculateEllipticalOrbitPosition(simulationTime, planet, scaleFactor.DISTANCE);
+        const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
         const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
 
         // Initialize offset on first frame with appropriate zoom based on planet size
@@ -353,14 +367,20 @@ function PlanetWithMoons({ planetData }: { planetData: typeof PLANETS[0] }) {
   // Calculate planet's position using elliptical orbit
   const planetPosition = useMemo(() => {
     const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-    const position = calculateEllipticalOrbitPosition(
+    const allBodies = [...PLANETS, ...DWARF_PLANETS];
+    const position = calculateCelestialBodyPosition(
       simulationTime,
       planetData,
-      scaleFactor.DISTANCE
+      scaleFactor.DISTANCE,
+      allBodies
     );
 
     return new Vector3(position.x, position.y, position.z);
   }, [simulationTime, scaleMode, planetData]);
+
+  // Check if this is the Moon (satellite rendered as Planet)
+  const isMoon = planetData.isMoon && planetData.parentPlanet;
+  const parentPlanet = isMoon ? PLANETS.find(p => p.name === planetData.parentPlanet) : null;
 
   return (
     <>
@@ -369,6 +389,10 @@ function PlanetWithMoons({ planetData }: { planetData: typeof PLANETS[0] }) {
       {moons.map((moon) => (
         <Moon key={moon.name} planetPosition={planetPosition} moonData={moon} />
       ))}
+      {/* Render moon orbit around parent planet if this is a moon */}
+      {isMoon && parentPlanet && (
+        <MoonOrbit moonData={planetData} parentPlanet={parentPlanet} color="#60a5fa" opacity={0.25} />
+      )}
     </>
   );
 }
