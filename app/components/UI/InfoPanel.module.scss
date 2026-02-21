@@ -139,6 +139,62 @@
       color: rgba(255, 255, 255, 0.8);
     }
 
+    .moonsTableWrapper {
+      max-height: 25vh;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+      }
+    }
+
+    .moonsTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+
+        th {
+          background: rgba(255, 255, 255, 0.1);
+          padding: 8px 10px;
+          text-align: left;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.5);
+          font-weight: 600;
+        }
+      }
+
+      tbody tr {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+          padding: 7px 10px;
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+
     .factsList {
       list-style: none;
       padding: 12px 12px 12px 24px;

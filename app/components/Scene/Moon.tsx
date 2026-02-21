@@ -116,7 +116,11 @@ function MoonMesh({
 
   // Calculate scaled values
   const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-  const moonSize = (moonData.diameter / 12742) * scaleFactor.SIZE * 5; // Relative to Earth
+  const MIN_MOON_SIZE = 0.002;
+  const moonSize = Math.max(
+    (moonData.diameter / 12742) * scaleFactor.SIZE * 5,
+    MIN_MOON_SIZE
+  ); // Relative to Earth, with minimum for visibility
 
   // Distance threshold for showing labels: 2 AU in scene units
   // This matches the planet label distance threshold
@@ -234,6 +238,7 @@ function MoonMesh({
           position={[0, moonSize * 2, 0]}
           center
           sprite
+          zIndexRange={[1, 0]}
           style={{
             transition: 'all 0.2s',
             pointerEvents: 'none',
@@ -306,6 +311,7 @@ function MoonSprite({ planetPosition, moonData }: MoonProps) {
           position={[0, moonSize * 2, 0]}
           center
           sprite
+          zIndexRange={[1, 0]}
           style={{
             transition: 'all 0.2s',
             pointerEvents: 'none',

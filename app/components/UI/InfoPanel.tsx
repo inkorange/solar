@@ -2,6 +2,7 @@
 
 import { useStore } from '@/app/store/useStore';
 import { PLANETS } from '@/app/data/planets';
+import { getMoonsForPlanet } from '@/app/data/moons';
 import styles from './InfoPanel.module.scss';
 
 export default function InfoPanel() {
@@ -38,6 +39,7 @@ export default function InfoPanel() {
   // Determine if this is a moon (has parentPlanet property)
   const isMoon = 'parentPlanet' in selectedPlanet;
   const isPlanetOrAsteroid = 'distanceFromSun' in selectedPlanet;
+  const moons = !isMoon ? getMoonsForPlanet(selectedPlanet.name) : [];
 
   return (
     <div className={`${styles.infoPanel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed}`}>
@@ -80,6 +82,32 @@ export default function InfoPanel() {
             )}
           </div>
         </div>
+
+        {moons.length > 0 && (
+          <div className={styles.section}>
+            <h3>Largest Moons</h3>
+            <div className={styles.moonsTableWrapper}>
+              <table className={styles.moonsTable}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Diameter</th>
+                    <th>Orbit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {moons.map((moon) => (
+                    <tr key={moon.name}>
+                      <td>{moon.name}</td>
+                      <td>{moon.diameter.toLocaleString()} km</td>
+                      <td>{moon.orbitalPeriod.toFixed(1)} d</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className={styles.section}>
           <h3>Orbital Data</h3>

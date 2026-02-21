@@ -240,9 +240,8 @@ export const MOONS: MoonData[] = [
     orbitalSpeed: 2.138,
     orbitalEccentricity: 0.0151,
     orbitalInclination: 1.08,
+    meanAnomalyAtEpoch: 189.7, // degrees at J2000
     tidally_locked: true,
-    showLabel: false,
-    useSprite: true,
     facts: [
       "Irregularly shaped, potato-like moon",
       "Named after Greek god of fear",
@@ -262,9 +261,8 @@ export const MOONS: MoonData[] = [
     orbitalSpeed: 1.351,
     orbitalEccentricity: 0.0003,
     orbitalInclination: 0.93,
+    meanAnomalyAtEpoch: 205.0, // degrees at J2000
     tidally_locked: true,
-    showLabel: false,
-    useSprite: true,
     facts: [
       "Smaller and more distant of Mars' two moons",
       "Named after Greek god of terror",
@@ -558,7 +556,7 @@ export const MOON_COUNTS = {
   Mercury: 0,
   Venus: 0,
   Earth: 0, // Moon is now in PLANETS array for travel functionality
-  Mars: 2, // Phobos and Deimos (sprites)
+  Mars: 2, // Phobos and Deimos
   Jupiter: 6, // Galilean moons (3D) + Amalthea, Himalia (sprites)
   Saturn: 8, // Titan (3D), Enceladus, Rhea (3D) + Mimas, Tethys, Dione, Iapetus (sprites)
   Uranus: 5, // Titania, Oberon (3D) + Ariel, Umbriel, Miranda (sprites)

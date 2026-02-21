@@ -136,6 +136,7 @@ export default function Planet({ data }: PlanetProps) {
           position={[0, planetSize * 1.8, 0]}
           center
           sprite
+          zIndexRange={[1, 0]}
           style={{
             transition: 'all 0.2s',
             pointerEvents: 'none',
