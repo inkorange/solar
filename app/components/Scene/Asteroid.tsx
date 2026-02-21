@@ -114,6 +114,7 @@ export default function Asteroid({ data }: AsteroidProps) {
           position={[0, asteroidSize * 1.8, 0]}
           center
           sprite
+          zIndexRange={[1, 0]}
           style={{
             transition: 'all 0.2s',
             pointerEvents: 'none',
