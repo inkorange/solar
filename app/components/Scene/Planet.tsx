@@ -32,7 +32,6 @@ export default function Planet({ data }: PlanetProps) {
   useEffect(() => {
     if (texture && data.texture && !hasDispatchedRef.current) {
       hasDispatchedRef.current = true;
-      console.log('[Planet] Dispatching load event for:', data.name);
       window.dispatchEvent(new CustomEvent('planet-texture-loaded', { detail: { name: data.name } }));
     }
   }, [texture, data.texture, data.name]);

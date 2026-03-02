@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useStore } from '@/app/store/useStore';
 import {
   getPropulsionById,
@@ -24,7 +25,10 @@ export default function TravelInfoPanel() {
     cancelJourney,
     resetJourney,
     showControls,
+    isMobileView,
   } = useStore();
+
+  const [isExpanded, setIsExpanded] = useState(true);
 
   if (!destination || !origin || !selectedPropulsion) {
     return null;
@@ -44,25 +48,6 @@ export default function TravelInfoPanel() {
   const distanceRemaining = Math.max(0, totalDistance - distanceTraveled);
 
   // Debug logging - only log occasionally to avoid console spam
-  if (typeof window !== 'undefined' && journeyElapsedTime > 0 && Math.floor(journeyElapsedTime) % 2 === 0) {
-    const timeToMaxSpeed = propulsion.maxSpeed / (propulsion.acceleration / 1000);
-    const decelStartTime = totalTime - timeToMaxSpeed;
-
-    console.log('Journey Debug:', {
-      phase: flightPhase,
-      speed: currentSpeed.toFixed(2) + ' km/s',
-      maxSpeed: propulsion.maxSpeed + ' km/s',
-      acceleration: propulsion.acceleration + ' m/s²',
-      progress: progress.toFixed(1) + '%',
-      elapsed: journeyElapsedTime.toFixed(1) + 's',
-      total: totalTime.toFixed(1) + 's',
-      decelStartTime: decelStartTime.toFixed(1) + 's',
-      distanceTraveled: (distanceTraveled / 1000000).toFixed(2) + ' M km',
-      distanceRemaining: (distanceRemaining / 1000000).toFixed(2) + ' M km',
-      useFlipAndBurn,
-      propulsion: propulsion.name
-    });
-  }
 
   // Get phase display info
   const getPhaseInfo = () => {
@@ -127,78 +112,105 @@ export default function TravelInfoPanel() {
     return null;
   }
 
+  const isMobileCollapsed = isMobileView && !isExpanded;
+
   return (
-    <div className={`${styles.panel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed}`}>
-      <div className={styles.header}>
-        <div className={styles.title}>
-          <h2>Journey in Progress</h2>
-          <div className={styles.status}>Active Travel</div>
-        </div>
-      </div>
-
-      <div className={styles.route}>
-        <div className={styles.routeText}>
-          <span>{origin.name}</span> → <span>{destination.name}</span>
-        </div>
-        <div className={styles.propulsion}>
-          <span className={styles.icon}>{propulsion.icon}</span>
-          <span>{propulsion.displayName}</span>
-        </div>
-      </div>
-
-      <div className={styles.flightPhase} style={{ borderColor: phaseInfo.color }}>
-        <span className={styles.phaseIcon}>{phaseInfo.icon}</span>
-        <span className={styles.phaseText} style={{ color: phaseInfo.color }}>
-          {phaseInfo.text}
-        </span>
-      </div>
-
-      <div className={styles.progressBar}>
-        <div className={styles.progress} style={{ width: `${progress}%` }} />
-      </div>
-
-      <div className={styles.stats}>
-        <div className={styles.stat}>
-          <div className={styles.label}>Current Speed</div>
-          <div className={styles.value}>
+    <div className={`${styles.panel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed} ${isMobileCollapsed ? styles.mobileCollapsed : ''}`}>
+      {/* Compact strip for mobile - always visible */}
+      {isMobileView && (
+        <div
+          className={styles.compactStrip}
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <span className={styles.compactPhaseIcon}>{phaseInfo.icon}</span>
+          <div className={styles.compactProgress}>
+            <div className={styles.compactProgressFill} style={{ width: `${progress}%` }} />
+          </div>
+          <span className={styles.compactSpeed}>
             {currentSpeed >= 1000
               ? `${(currentSpeed / 1000).toFixed(1)}k`
-              : currentSpeed.toFixed(1)}
-            <span className={styles.unit}> km/s</span>
-          </div>
+              : currentSpeed.toFixed(0)} km/s
+          </span>
+          <span className={styles.compactEta}>{formatDuration(remainingTime)}</span>
+          <span className={styles.compactToggle}>{isExpanded ? '▼' : '▲'}</span>
         </div>
+      )}
 
-        <div className={styles.stat}>
-          <div className={styles.label}>Distance Left</div>
-          <div className={styles.value}>
-            {distanceRemaining >= 1000000
-              ? `${(distanceRemaining / 1000000).toFixed(1)}`
-              : `${(distanceRemaining / 1000).toFixed(0)}`}
-            <span className={styles.unit}>
-              {distanceRemaining >= 1000000 ? ' M km' : ' k km'}
+      {/* Full detail - hidden when collapsed on mobile */}
+      {(!isMobileView || isExpanded) && (
+        <div className={styles.fullDetail}>
+          <div className={styles.header}>
+            <div className={styles.title}>
+              <h2>Journey in Progress</h2>
+              <div className={styles.status}>Active Travel</div>
+            </div>
+          </div>
+
+          <div className={styles.route}>
+            <div className={styles.routeText}>
+              <span>{origin.name}</span> → <span>{destination.name}</span>
+            </div>
+            <div className={styles.propulsion}>
+              <span className={styles.icon}>{propulsion.icon}</span>
+              <span>{propulsion.displayName}</span>
+            </div>
+          </div>
+
+          <div className={styles.flightPhase} style={{ borderColor: phaseInfo.color }}>
+            <span className={styles.phaseIcon}>{phaseInfo.icon}</span>
+            <span className={styles.phaseText} style={{ color: phaseInfo.color }}>
+              {phaseInfo.text}
             </span>
           </div>
-        </div>
 
-        <div className={`${styles.stat} ${styles.statFull}`}>
-          <div className={styles.label}>Progress</div>
-          <div className={styles.value}>
-            {progress.toFixed(1)}
-            <span className={styles.unit}>%</span>
+          <div className={styles.progressBar}>
+            <div className={styles.progress} style={{ width: `${progress}%` }} />
+          </div>
+
+          <div className={styles.stats}>
+            <div className={styles.stat}>
+              <div className={styles.label}>Current Speed</div>
+              <div className={styles.value}>
+                {currentSpeed >= 1000
+                  ? `${(currentSpeed / 1000).toFixed(1)}k`
+                  : currentSpeed.toFixed(1)}
+                <span className={styles.unit}> km/s</span>
+              </div>
+            </div>
+
+            <div className={styles.stat}>
+              <div className={styles.label}>Distance Left</div>
+              <div className={styles.value}>
+                {distanceRemaining >= 1000000
+                  ? `${(distanceRemaining / 1000000).toFixed(1)}`
+                  : `${(distanceRemaining / 1000).toFixed(0)}`}
+                <span className={styles.unit}>
+                  {distanceRemaining >= 1000000 ? ' M km' : ' k km'}
+                </span>
+              </div>
+            </div>
+
+            <div className={`${styles.stat} ${styles.statFull}`}>
+              <div className={styles.label}>Progress</div>
+              <div className={styles.value}>
+                {progress.toFixed(1)}
+                <span className={styles.unit}>%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.eta}>
+            <div className={styles.etaLabel}>Estimated Time Remaining</div>
+            <div className={styles.etaValue}>{formatDuration(remainingTime)}</div>
+          </div>
+
+          <div className={styles.actions}>
+            <button className={styles.cancelButton} onClick={cancelJourney}>
+              Abort Journey
+            </button>
           </div>
         </div>
-      </div>
-
-      <div className={styles.eta}>
-        <div className={styles.etaLabel}>Estimated Time Remaining</div>
-        <div className={styles.etaValue}>{formatDuration(remainingTime)}</div>
-      </div>
-
-      <div className={styles.actions}>
-        <button className={styles.cancelButton} onClick={cancelJourney}>
-          Abort Journey
-        </button>
-      </div>
+      )}
     </div>
   );
 }

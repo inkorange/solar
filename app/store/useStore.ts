@@ -77,6 +77,14 @@ interface AppState {
   setShowNavigation: (show: boolean) => void;
   setShowControls: (show: boolean) => void;
 
+  // Mobile state
+  isMobileView: boolean;
+  activeMobilePanel: 'navigation' | 'info' | 'travel' | 'controls' | null;
+  showAllUI: boolean;
+  setIsMobileView: (isMobile: boolean) => void;
+  setActiveMobilePanel: (panel: 'navigation' | 'info' | 'travel' | 'controls' | null) => void;
+  toggleAllUI: () => void;
+
   // Spaceship position (for Phase 2)
   spaceshipPosition: [number, number, number];
   setSpaceshipPosition: (position: [number, number, number]) => void;
@@ -279,6 +287,22 @@ export const useStore = create<AppState>((set) => ({
   setShowInfoPanel: (show) => set({ showInfoPanel: show }),
   setShowNavigation: (show) => set({ showNavigation: show }),
   setShowControls: (show) => set({ showControls: show }),
+
+  // Mobile state
+  isMobileView: false,
+  activeMobilePanel: null,
+  showAllUI: true,
+  setIsMobileView: (isMobile) => set({ isMobileView: isMobile }),
+  setActiveMobilePanel: (panel) => set((state) => {
+    if (!state.isMobileView) return {};
+    return {
+      activeMobilePanel: panel,
+      showNavigation: panel === 'navigation',
+      showInfoPanel: panel === 'info',
+      showControls: panel === 'controls',
+    };
+  }),
+  toggleAllUI: () => set((state) => ({ showAllUI: !state.showAllUI })),
 
   // Spaceship
   spaceshipPosition: [0, 0, 10], // Start near Earth

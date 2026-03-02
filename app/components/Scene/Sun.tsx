@@ -19,7 +19,6 @@ export default function Sun() {
   useEffect(() => {
     if (texture && SUN_DATA.texture && !hasDispatchedRef.current) {
       hasDispatchedRef.current = true;
-      console.log('[Sun] Dispatching load event');
       window.dispatchEvent(new CustomEvent('planet-texture-loaded', { detail: { name: 'Sun' } }));
     }
   }, [texture]);

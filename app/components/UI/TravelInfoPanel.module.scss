@@ -315,19 +315,88 @@
   }
 }
 
+// Compact strip styles (mobile only)
+.compactStrip {
+  display: none;
+}
+
+.fullDetail {
+  // No special styles on desktop - just a wrapper
+}
+
 // Mobile responsive adjustments
 @media (max-width: 768px) {
-  .panel {
-    // When controls are collapsed (hidden), panel can be taller
-    &.controlsCollapsed {
-      bottom: 20px;
-      max-height: calc(100vh - 80px);
+  .compactStrip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+    cursor: pointer;
+
+    .compactPhaseIcon {
+      font-size: 16px;
+      flex-shrink: 0;
     }
 
-    // When controls are expanded (visible), panel must be shorter
-    &.controlsExpanded {
-      bottom: 120px;
-      max-height: calc(100vh - 200px);
+    .compactProgress {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+
+      .compactProgressFill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        border-radius: 2px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    .compactSpeed,
+    .compactEta {
+      font-size: 11px;
+      font-family: var(--font-geist-mono);
+      white-space: nowrap;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .compactToggle {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.5);
+      flex-shrink: 0;
+    }
+  }
+
+  .panel {
+    top: auto;
+    right: 10px;
+    left: 10px;
+    width: auto;
+
+    // When collapsed on mobile, show only compact strip
+    &.mobileCollapsed {
+      padding: 12px 14px;
+      bottom: 20px;
+
+      .fullDetail {
+        display: none;
+      }
+    }
+
+    // When expanded on mobile
+    &:not(.mobileCollapsed) {
+      // When controls are collapsed (hidden), panel can be taller
+      &.controlsCollapsed {
+        bottom: 20px;
+        max-height: calc(100vh - 80px);
+      }
+
+      // When controls are expanded (visible), panel must be shorter
+      &.controlsExpanded {
+        bottom: 120px;
+        max-height: calc(100vh - 200px);
+      }
     }
   }
 }

@@ -11,15 +11,33 @@ export default function Navigation() {
     selectedPlanet,
     setSelectedPlanet,
     showNavigation,
+    setShowNavigation,
     setCameraTarget,
     simulationTime,
     scaleMode,
     setCameraMode,
+    isMobileView,
   } = useStore();
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!showNavigation) return null;
+  // On mobile, show a toggle button when navigation is hidden
+  if (!showNavigation) {
+    if (!isMobileView) return null;
+    return (
+      <button
+        className={styles.mobileNavToggle}
+        onClick={() => setShowNavigation(true)}
+        aria-label="Open navigation"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    );
+  }
 
   // Combine all celestial bodies for filtering
   const allBodies = [...PLANETS, ...DWARF_PLANETS];
@@ -101,6 +119,15 @@ export default function Navigation() {
 
   return (
     <div className={styles.navigation}>
+      {isMobileView && (
+        <button
+          className={styles.mobileCloseNav}
+          onClick={() => setShowNavigation(false)}
+          aria-label="Close navigation"
+        >
+          ×
+        </button>
+      )}
       <h2>Solar System</h2>
 
       {/* Search/Filter */}

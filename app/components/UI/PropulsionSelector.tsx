@@ -107,6 +107,7 @@ export default function PropulsionSelector() {
     <>
       <div className={styles.overlay} onClick={handleCancel} />
       <div className={styles.selector}>
+        <div className={styles.dragHandle} />
         <div className={styles.scrollContent}>
           <div className={styles.header}>
             <h2>Choose Your Propulsion System</h2>

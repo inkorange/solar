@@ -387,12 +387,6 @@ export function calculateMoonHeliocentricPosition(
   // Get Moon's position relative to Earth using moon scale factor
   const moonRelativePos = calculateMoonPositionRelativeToEarth(time, moonData, moonScaleFactor);
 
-  console.log('[calculateMoonHeliocentricPosition] Earth pos:', earthPos);
-  console.log('[calculateMoonHeliocentricPosition] Moon relative pos:', moonRelativePos);
-  console.log('[calculateMoonHeliocentricPosition] time:', time);
-  console.log('[calculateMoonHeliocentricPosition] planetScaleFactor:', planetScaleFactor);
-  console.log('[calculateMoonHeliocentricPosition] moonScaleFactor:', moonScaleFactor);
-
   // Combine: Moon's heliocentric position = Earth's position + Moon's offset
   return {
     x: earthPos.x + moonRelativePos.x,
@@ -479,11 +473,6 @@ export function generateMoonOrbitPath(
     parentPlanet,
     planetScaleFactor
   );
-
-  console.log('[generateMoonOrbitPath] Earth position:', parentPos);
-  console.log('[generateMoonOrbitPath] time:', time);
-  console.log('[generateMoonOrbitPath] planetScaleFactor:', planetScaleFactor);
-  console.log('[generateMoonOrbitPath] moonScaleFactor:', moonScaleFactor);
 
   // Moon's orbital parameters
   const distanceFromPlanet = moonData.distanceFromPlanet; // km

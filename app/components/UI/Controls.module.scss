@@ -233,33 +233,47 @@
   .controls {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
-    padding: 40px 12px 10px;
-    width: 90vw; // Set to 90% of viewport width
-    max-width: 90vw; // Ensure it doesn't exceed 90%
+    gap: 8px;
+    padding: 12px 10px 10px;
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
     border-radius: 12px 12px 0 0;
+    position: relative;
 
     .divider {
       display: none;
     }
 
     .controlGroup {
-      gap: 6px;
+      gap: 4px;
 
       label {
-        font-size: 10px;
+        font-size: 9px;
       }
     }
 
     .speedButtons button {
-      padding: 5px 8px;
-      font-size: 10px;
+      padding: 4px 6px;
+      font-size: 9px;
     }
 
     .toggleGroup button {
-      padding: 6px 12px;
-      font-size: 10px;
+      padding: 5px 8px;
+      font-size: 9px;
     }
+
+    .playPauseButton {
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+    }
+  }
+
+  .closeButton {
+    position: static;
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
   }
 
   .toggleButton {

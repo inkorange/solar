@@ -19,6 +19,13 @@ export default function WelcomeOverlay() {
 
         <div className={styles.content}>
           <div className={styles.leftColumn}>
+            <button
+              className={styles.startButton}
+              onClick={() => setShowWelcome(false)}
+            >
+              Start Journey
+            </button>
+
             <div className={styles.features}>
               <h2>Welcome to Your Journey</h2>
               <ul>
@@ -72,12 +79,6 @@ export default function WelcomeOverlay() {
               </p>
             </div>
 
-            <button
-              className={styles.startButton}
-              onClick={() => setShowWelcome(false)}
-            >
-              Start Journey
-            </button>
           </div>
         </div>
       </div>

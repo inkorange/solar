@@ -68,35 +68,16 @@ function SceneUpdater() {
           const flightPhase = getFlightPhase(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn);
           const totalTime = calculateTravelTime(totalDistance, propulsion, useFlipAndBurn);
 
-          // Debug logging every 2 seconds of journey time
-          if (Math.floor(journeyElapsedTime) % 2 === 0 && Math.floor(journeyElapsedTime) !== Math.floor(journeyElapsedTime - delta)) {
-            console.log('[Journey Status]', {
-              phase: flightPhase,
-              elapsed: journeyElapsedTime.toFixed(1) + 's / ' + totalTime.toFixed(1) + 's',
-              speed: currentSpeed.toFixed(2) + ' km/s (max: ' + propulsion.maxSpeed + ')',
-              progress: progress.toFixed(2) + '%',
-              distance: (distanceTraveled / 1000000).toFixed(2) + 'M km / ' + (totalDistance / 1000000).toFixed(2) + 'M km',
-              useFlipAndBurn,
-            });
-          }
-
           // For flip-and-burn: complete when speed reaches near 0 AND distance equals total
           // For no flip-and-burn: complete when distance traveled reaches destination
           if (useFlipAndBurn && propulsion.supportsFlipAndBurn) {
-            // Log when we're getting close to arrival
-            if (progress > 95) {
-              console.log('[Arrival Check] Speed:', currentSpeed.toFixed(2), 'km/s | Progress:', progress.toFixed(2), '% | Need: speed < 0.5 km/s AND progress >= 99.9%');
-            }
-
             // Complete when speed is very low (< 0.5 km/s) and we've reached destination (>= 99.9% distance)
             if (currentSpeed < 0.5 && distanceTraveled >= totalDistance * 0.999) {
-              console.log('[JOURNEY COMPLETE] Arrived with speed:', currentSpeed.toFixed(2), 'km/s at', progress.toFixed(2), '% distance');
               completeJourney();
             }
           } else {
             // No deceleration - complete when we reach the destination (>= 99.9%)
             if (distanceTraveled >= totalDistance * 0.999) {
-              console.log('[JOURNEY COMPLETE] Arrived at', progress.toFixed(2), '% distance (no flip-and-burn)');
               completeJourney();
             }
           }
@@ -412,7 +393,6 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
   useEffect(() => {
     if (loadedCount >= totalItems.current && totalItems.current > 0 && !hasCompleted.current) {
       hasCompleted.current = true;
-      console.log('[LoadingTracker] All', loadedCount, 'textures loaded! Hiding loading screen in 500ms...');
       // Delay to ensure scene is fully rendered
       setTimeout(() => onLoadComplete(), 500);
     }
