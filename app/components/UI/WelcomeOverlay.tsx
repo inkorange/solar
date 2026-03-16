@@ -32,7 +32,7 @@ export default function WelcomeOverlay() {
                 <li>Explore our solar system with detailed scientific data and facts</li>
                 <li>Navigate using the left panel or search for specific planets</li>
                 <li>Select destinations and travel between celestial bodies</li>
-                <li>Choose from 7 different propulsion methods (chemical to warp drive!)</li>
+                <li>Choose from 9 different propulsion methods (chemical to warp drive!)</li>
                 <li>Experience realistic travel times based on actual physics</li>
                 <li>Toggle orbital paths and labels for better understanding</li>
                 <li>Switch camera modes to follow your spaceship or focus on planets</li>
@@ -86,8 +86,8 @@ export default function WelcomeOverlay() {
       <div className={styles.newFeature}>
         <div className={styles.featureImage}>
           <Image
-            src="/theexpanse.png"
-            alt="The Expanse"
+            src="/project-hail-mary.jpg"
+            alt="Project Hail Mary"
             width={120}
             height={120}
             style={{ objectFit: 'contain' }}
@@ -96,11 +96,11 @@ export default function WelcomeOverlay() {
         <div className={styles.featureContent}>
           <h4>
             <span className={styles.badge}>New</span>
-            Epstein Drive from The Expanse
+            Astrophage Spin Drive from Project Hail Mary
           </h4>
           <p>
-            Experience the revolutionary fusion-based propulsion from The Expanse! Continuously accelerate at 1.5G to the halfway point,
-            then flip and burn to your destination. Travel from Earth to Mars in just days instead of months.
+            Fly the Hail Mary! Powered by Astrophage — an alien micro-organism that converts mass directly into energy — the Spin Drive
+            accelerates at a constant 1.5G. Flip and burn at the midpoint to decelerate for arrival. A living fuel source capable of interstellar travel.
           </p>
         </div>
       </div>

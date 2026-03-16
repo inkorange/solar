@@ -121,6 +121,15 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+
+      .accelRate {
+        font-size: 12px;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        opacity: 0.7;
+        font-family: var(--font-geist-mono);
+      }
     }
   }
 

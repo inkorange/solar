@@ -11,6 +11,7 @@ export type PropulsionType =
   | 'nuclear-thermal'
   | 'antimatter'
   | 'epstein-drive'
+  | 'astrophage-drive'
   | 'light-speed'
   | 'warp-drive';
 
@@ -46,6 +47,41 @@ export const CONSTANTS = {
 };
 
 export const PROPULSION_SYSTEMS: PropulsionData[] = [
+  {
+    id: 'astrophage-drive',
+    name: 'Astrophage Spin Drive',
+    displayName: 'Astrophage Spin Drive (Project Hail Mary)',
+    category: 'Theoretical',
+    maxSpeed: 100000, // km/s (~33% speed of light - set very high to ensure continuous acceleration)
+    acceleration: 14.715, // m/s² (1.5G - constant acceleration)
+    supportsFlipAndBurn: true,
+    description: 'Alien-biological propulsion using Astrophage, a micro-organism that converts mass directly into IR light energy with near-perfect efficiency. Powers the Hail Mary spacecraft.',
+    technicalDetails: 'Astrophage stores energy at extraordinary density by converting mass to energy via an unknown biological process. The spin drive channels Astrophage emissions to produce thrust, maintaining a constant 1.5G acceleration. Ships must perform a flip-and-burn at the midpoint to decelerate for arrival. The fuel source is a living organism discovered on the surface of the Sun.',
+    realWorldExamples: [
+      'Fictional technology from Project Hail Mary by Andy Weir (2021)',
+      'Hail Mary spacecraft (crewed interstellar mission to Tau Ceti)',
+      'Blip-A spacecraft (Eridian equivalent)',
+      'Inspired by real mass-energy conversion physics (E=mc²)'
+    ],
+    advantages: [
+      'Constant 1.5G acceleration (comfortable artificial gravity)',
+      'Extraordinary fuel energy density (mass-to-energy conversion)',
+      'Biological fuel source that can self-replicate',
+      'No cruise phase - always accelerating or decelerating',
+      'Capable of interstellar travel (Earth to Tau Ceti)',
+      'Simple propulsion mechanism (directed IR emission)'
+    ],
+    limitations: [
+      'Requires Astrophage (alien organism not found on Earth)',
+      'Fuel is a living organism requiring careful storage',
+      'Must flip exactly at midpoint (complex navigation)',
+      'Astrophage consumes stellar energy (ecological risk)',
+      'No known method to synthesize Astrophage artificially',
+      'Fictional - no experimental validation'
+    ],
+    color: '#ff8f00',
+    icon: '🔬'
+  },
   {
     id: 'chemical-rocket',
     name: 'Chemical Rocket',

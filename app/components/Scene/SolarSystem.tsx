@@ -522,10 +522,10 @@ export default function SolarSystem() {
         {/* Post-processing effects for sun glow */}
         <EffectComposer>
           <Bloom
-            intensity={2.0}
-            luminanceThreshold={0.6}
+            intensity={1.2}
+            luminanceThreshold={0.75}
             luminanceSmoothing={0.9}
-            radius={1.0}
+            radius={0.8}
             mipmapBlur
           />
         </EffectComposer>

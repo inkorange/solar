@@ -9,6 +9,7 @@ import { SCALE_FACTORS, PLANETS, DWARF_PLANETS } from '@/app/data/planets';
 import { getPropulsionById, getFlightPhase, calculateDistanceTraveled } from '@/app/data/propulsion';
 import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import EngineTrail from './EngineTrail';
+import HailMaryShip, { HAIL_MARY_NOZZLE_OFFSETS } from './HailMaryShip';
 
 // Create a shared ref that can be accessed by the camera
 export const spaceshipGroupRef = { current: null as Group | null };
@@ -250,23 +251,44 @@ export default function Spaceship() {
   // Scale factor to make spaceship appropriately sized
   // Adjust this value based on how the model looks in the scene
   const SHIP_SCALE = 0.003125;
+  const isHailMary = selectedPropulsion === 'astrophage-drive';
 
   return (
     <group ref={groupRef}>
-      {/* 3D Spaceship Model */}
-      <primitive
-        object={scene.clone()}
-        scale={SHIP_SCALE}
-        rotation={[0, Math.PI / 2, 0]}
-        ref={bodyRef}
-      />
+      {/* 3D Spaceship Model - swap for Hail Mary when using Astrophage drive */}
+      {isHailMary ? (
+        <HailMaryShip scale={SHIP_SCALE * 1.2} />
+      ) : (
+        <primitive
+          object={scene.clone()}
+          scale={SHIP_SCALE}
+          rotation={[0, Math.PI / 2, 0]}
+          ref={bodyRef}
+        />
+      )}
 
-      {/* Engine trail particles */}
-      <EngineTrail
-        propulsion={selectedPropulsion}
-        isActive={journeyStatus === 'traveling'}
-        flightPhase={flightPhase}
-      />
+      {/* Engine trail particles — 3 plumes for Hail Mary (one per tank nozzle), 1 for others */}
+      {isHailMary ? (
+        HAIL_MARY_NOZZLE_OFFSETS.map((offset, i) => (
+          <EngineTrail
+            key={`hm-trail-${i}`}
+            propulsion={selectedPropulsion}
+            isActive={journeyStatus === 'traveling'}
+            flightPhase={flightPhase}
+            engineOffset={{
+              x: offset.x * SHIP_SCALE * 1.2,
+              y: offset.y * SHIP_SCALE * 1.2,
+              z: offset.z * SHIP_SCALE * 1.2,
+            }}
+          />
+        ))
+      ) : (
+        <EngineTrail
+          propulsion={selectedPropulsion}
+          isActive={journeyStatus === 'traveling'}
+          flightPhase={flightPhase}
+        />
+      )}
     </group>
   );
 }
