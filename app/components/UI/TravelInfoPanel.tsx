@@ -160,6 +160,11 @@ export default function TravelInfoPanel() {
             <span className={styles.phaseIcon}>{phaseInfo.icon}</span>
             <span className={styles.phaseText} style={{ color: phaseInfo.color }}>
               {phaseInfo.text}
+              {(flightPhase === 'accelerating' || flightPhase === 'decelerating') && propulsion.acceleration > 0 && (
+                <span className={styles.accelRate}>
+                  {' '}@ {(propulsion.acceleration / 9.80665).toFixed(1)}G ({propulsion.acceleration.toFixed(1)} m/s²)
+                </span>
+              )}
             </span>
           </div>
 

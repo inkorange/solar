@@ -11,6 +11,7 @@ import {
 } from '@/app/data/propulsion';
 import { calculateInterceptCourse } from '@/app/lib/orbital-mechanics';
 import { SCALE_FACTORS, PLANETS, PlanetData } from '@/app/data/planets';
+import Image from 'next/image';
 import styles from './PropulsionSelector.module.scss';
 
 export default function PropulsionSelector() {
@@ -181,6 +182,19 @@ export default function PropulsionSelector() {
                   className={`${styles.propulsionCard} ${isSelected ? styles.selected : ''}`}
                   onClick={() => handleSelect(propulsion.id)}
                 >
+                  {propulsion.id === 'astrophage-drive' && (
+                    <div className={styles.cardBanner}>
+                      <Image
+                        src="/hail-mary-banner.jpg"
+                        alt="Project Hail Mary"
+                        fill
+                        style={{ objectFit: 'cover' }}
+                      />
+                      <div className={styles.bannerOverlay}>
+                        <span className={styles.bannerBadge}>Featured</span>
+                      </div>
+                    </div>
+                  )}
                   <div className={styles.cardHeader}>
                     <div className={styles.left}>
                       <div className={styles.icon}>{propulsion.icon}</div>
