@@ -333,8 +333,8 @@
   // No special styles on desktop - just a wrapper
 }
 
-// Mobile responsive adjustments
-@media (max-width: 768px) {
+// Mobile responsive adjustments (phones in either orientation)
+@media (max-width: 768px), (max-height: 500px) and (orientation: landscape) {
   .compactStrip {
     display: flex;
     align-items: center;
@@ -393,20 +393,6 @@
       }
     }
 
-    // When expanded on mobile
-    &:not(.mobileCollapsed) {
-      // When controls are collapsed (hidden), panel can be taller
-      &.controlsCollapsed {
-        bottom: 20px;
-        max-height: calc(100vh - 80px);
-      }
-
-      // When controls are expanded (visible), panel must be shorter
-      &.controlsExpanded {
-        bottom: 120px;
-        max-height: calc(100vh - 200px);
-      }
-    }
   }
 }
 
@@ -418,7 +404,8 @@
     right: 12px;
     bottom: max(16px, env(safe-area-inset-bottom));
     width: auto;
-    max-height: 60vh;
+    max-height: min(60vh, calc(100vh - 150px - env(safe-area-inset-top)));
+    max-height: min(60dvh, calc(100dvh - 150px - env(safe-area-inset-top)));
     overflow-y: auto;
     border-radius: 18px;
     padding: 14px 16px;
@@ -426,8 +413,11 @@
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  .panel {
+  .panel,
+  .panel.mobileCollapsed {
     top: max(12px, env(safe-area-inset-top));
+    bottom: auto;
+    left: auto;
     right: max(12px, env(safe-area-inset-right));
     width: 280px;
     max-height: calc(100vh - 24px);

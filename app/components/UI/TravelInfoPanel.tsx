@@ -28,7 +28,10 @@ export default function TravelInfoPanel() {
     isMobileView,
   } = useStore();
 
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Phones start with the compact strip so the scene stays visible.
+  const [isExpanded, setIsExpanded] = useState(
+    () => typeof window === 'undefined' || (window.innerWidth > 768 && window.innerHeight > 500)
+  );
 
   if (!destination || !origin || !selectedPropulsion) {
     return null;

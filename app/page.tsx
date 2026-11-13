@@ -26,7 +26,7 @@ export default function Home() {
 
   // TravelInfoPanel / PropulsionSelector still read isMobileView.
   useEffect(() => {
-    const handleResize = () => setIsMobileView(window.innerWidth <= 768);
+    const handleResize = () => setIsMobileView(window.innerWidth <= 768 || window.innerHeight <= 500);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

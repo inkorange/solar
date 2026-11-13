@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore, CameraMode } from '@/app/store/useStore';
 import { useLayout } from '@/app/lib/useLayout';
-import { cameraPositionFor } from '@/app/lib/focusBody';
+import { cameraPositionFor, ALL_BODIES } from '@/app/lib/focusBody';
 import {
   CAMERA_ICONS,
   IconPause,
@@ -60,15 +60,21 @@ function useCamera() {
   const setCameraMode = useStore((s) => s.setCameraMode);
 
   const choose = (mode: CameraMode) => {
-    const { selectedPlanet, simulationTime, scaleMode, setCameraTarget } = useStore.getState();
+    const { selectedPlanet, focusedPlanetName, destination, simulationTime, scaleMode, setCameraTarget } =
+      useStore.getState();
     // Re-choosing the current mode re-centres it (e.g. snap back to the ship).
     if (mode === cameraMode) {
       setCameraMode('free');
       setTimeout(() => setCameraMode(mode), 0);
       return;
     }
-    if (mode === 'planet-focus' && selectedPlanet) {
-      setCameraTarget(cameraPositionFor(selectedPlanet, simulationTime, scaleMode), selectedPlanet.name);
+    if (mode === 'planet-focus') {
+      const body =
+        selectedPlanet ??
+        ALL_BODIES.find((b) => b.name === focusedPlanetName) ??
+        destination ??
+        ALL_BODIES.find((b) => b.name === 'Earth')!;
+      setCameraTarget(cameraPositionFor(body, simulationTime, scaleMode), body.name);
     }
     setCameraMode(mode);
   };

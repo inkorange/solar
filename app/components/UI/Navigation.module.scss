@@ -90,7 +90,20 @@
   color: $ink-2;
   &:hover, &[aria-expanded='true'] { background: $fill-active; color: $ink; }
 
-  @media #{$landscape} { height: 40px; }
+  @media #{$landscape} { height: 36px; }
+}
+
+.railLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 34px;
+}
+
+.searchButton {
+  color: $ink;
+  background: $fill;
 }
 
 .railPlanet {
@@ -110,5 +123,5 @@
     box-shadow: inset 2px 0 0 $accent;
   }
 
-  @media #{$landscape} { height: 34px; }
+  @media #{$landscape} { height: 30px; }
 }

@@ -25,6 +25,7 @@ import AsteroidBelt from './AsteroidBelt';
 import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
 import { getMoonsForPlanet } from '@/app/data/moons';
 import { ASTEROIDS } from '@/app/data/asteroids';
+import { cameraPositionFor } from '@/app/lib/focusBody';
 import { useStore } from '@/app/store/useStore';
 import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import { getPropulsionById, calculateDistanceTraveled, calculateCurrentSpeed, getFlightPhase, calculateTravelTime } from '@/app/data/propulsion';
@@ -277,20 +278,18 @@ function CameraController() {
         const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
         const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
 
-        // Initialize offset on first frame with appropriate zoom based on planet size
+        // Entering planet view: fly in to the same close framing used when a planet is picked,
+        // instead of snapping to a distant default. The animation's completion sets the offset.
         if (!cameraOffsetRef.current) {
-          const planetSize = (planet.diameter / 12742) * scaleFactor.SIZE * 5;
-          // Increase distance multiplier to keep planets at ~50% viewport size
-          const cameraDistance = Math.max(planetSize * 50, 100); // At least 50x planet radius, minimum 100 units
-          const cameraHeight = Math.max(planetSize * 15, 40); // Higher camera for better view
-
-          // Position camera offset from planet
-          const initialCameraPos = planetPosVec.clone()
-            .add(new Vector3(cameraDistance, cameraHeight, cameraDistance));
-
-          camera.position.copy(initialCameraPos);
-          controlsRef.current.target.copy(planetPosVec);
-          cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
+          animationRef.current = {
+            active: true,
+            startTime: Date.now(),
+            startPos: camera.position.clone(),
+            targetPos: new Vector3(...cameraPositionFor(planet, simulationTime, scaleMode)),
+            startLookAt: controlsRef.current.target.clone(),
+            targetLookAt: planetPosVec,
+          };
+          return;
         }
 
         // Calculate how much the planet has moved

@@ -44,7 +44,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  max-height: 72vh;
+  max-height: min(72vh, calc(100vh - 132px - env(safe-area-inset-top)));
   border-radius: 22px 22px 0 0;
   border-bottom: 0;
   padding-bottom: env(safe-area-inset-bottom);

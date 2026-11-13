@@ -30,31 +30,26 @@ export default function Navigation() {
     <>
       {layout !== 'portrait' && (
         <nav className={styles.rail} aria-label="Destinations">
-          {layout === 'landscape' ? (
-            <button
-              type="button"
-              className={styles.railButton}
-              aria-label="All destinations and search"
-              aria-expanded={pickerOpen}
-              onClick={() => setPickerOpen(!pickerOpen)}
-            >
-              <LogoMark size={28} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={styles.railButton}
-              aria-label="Search destinations (/)"
-              aria-expanded={pickerOpen}
-              data-tip="Search  /"
-              onClick={() => setPickerOpen(!pickerOpen)}
-            >
-              <IconSearch />
-            </button>
+          {/* Landscape has no top-left brand tile, so the mark sits atop the rail (static). */}
+          {layout === 'landscape' && (
+            <span className={styles.railLogo} role="img" aria-label="Delta-V">
+              <LogoMark size={26} />
+            </span>
           )}
+          {/* Opens the full picker: search + moons + dwarf planets. */}
+          <button
+            type="button"
+            className={`${styles.railButton} ${styles.searchButton}`}
+            aria-label="Search all destinations, including moons and dwarf planets (/)"
+            aria-expanded={pickerOpen}
+            data-tip="Search · moons · dwarf planets"
+            onClick={() => setPickerOpen(!pickerOpen)}
+          >
+            <IconSearch />
+          </button>
           <span className={styles.divider} aria-hidden />
           {RAIL_BODIES.map((body) => {
-            const size = bodyDotSize(body, layout === 'landscape' ? 22 : 26, layout === 'landscape' ? 11 : 13);
+            const size = bodyDotSize(body, layout === 'landscape' ? 20 : 26, layout === 'landscape' ? 10 : 13);
             return (
               <button
                 key={body.name}
