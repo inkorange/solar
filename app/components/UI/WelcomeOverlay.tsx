@@ -44,7 +44,7 @@ export default function WelcomeOverlay() {
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="splash-title">
       <header className={styles.header}>
         <div className={styles.brand}>
-          <DeltaVLogo height={52} />
+          <DeltaVLogo height={96} />
         </div>
         <InkOrangeCredit />
       </header>
