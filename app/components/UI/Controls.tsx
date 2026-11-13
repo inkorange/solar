@@ -389,7 +389,7 @@ export default function Controls() {
       <>
         <div className={styles.topBar}>
           <button type="button" className={styles.utilBtn} aria-label="Delta-V, back to start screen" onClick={() => setShowWelcome(true)}>
-            <LogoMark size={20} />
+            <LogoMark size={28} />
           </button>
           <div className={styles.timeChip} role="group" aria-label="Time">
             <PlayPause size={36} />

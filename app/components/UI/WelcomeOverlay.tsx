@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useStore } from '@/app/store/useStore';
 import { PLANETS } from '@/app/data/planets';
-import { LogoMark, IconArrowRight } from './icons';
+import { IconArrowRight } from './icons';
+import { DeltaVLogo, InkOrangeCredit } from './Brand';
 import styles from './WelcomeOverlay.module.scss';
 
 export default function WelcomeOverlay() {
@@ -43,12 +44,9 @@ export default function WelcomeOverlay() {
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="splash-title">
       <header className={styles.header}>
         <div className={styles.brand}>
-          <LogoMark size={26} />
-          <span>Delta-V</span>
+          <DeltaVLogo height={52} />
         </div>
-        <a className={styles.about} href="https://chriswest.tech" target="_blank" rel="noreferrer">
-          About
-        </a>
+        <InkOrangeCredit />
       </header>
 
       <main className={styles.hero}>
@@ -83,6 +81,9 @@ export default function WelcomeOverlay() {
             </span>
           </span>
         </button>
+        <div className={styles.phoneCredit}>
+          <InkOrangeCredit compact />
+        </div>
       </main>
 
       <footer className={styles.footer}>

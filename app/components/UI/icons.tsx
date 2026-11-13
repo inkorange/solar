@@ -15,12 +15,8 @@ const base = (size = 18): SVGProps<SVGSVGElement> => ({
   'aria-hidden': true,
 });
 
-export const LogoMark = ({ size = 22, ...p }: P) => (
-  <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden {...p}>
-    <circle cx="14" cy="14" r="12.5" stroke="currentColor" strokeOpacity="0.35" />
-    <path d="M14 7 L21 20 H7 Z" stroke="var(--accent-primary)" strokeWidth="2" strokeLinejoin="round" />
-  </svg>
-);
+// Brand mark lives in Brand.tsx (raster logo); re-exported here for existing call sites.
+export { DeltaVMark as LogoMark } from './Brand';
 
 export const IconSearch = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>

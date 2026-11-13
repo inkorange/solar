@@ -1,0 +1,21 @@
+@use './hud' as *;
+
+.mark, .logo, .ink { display: block; height: auto; }
+
+.credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  text-decoration: none;
+  color: $ink-muted;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+  &:hover { opacity: 1; }
+  @include focus-ring;
+}
+
+.creditLabel {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}

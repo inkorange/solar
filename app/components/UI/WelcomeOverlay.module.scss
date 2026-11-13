@@ -43,24 +43,23 @@
   gap: 24px;
   min-height: 44px;
 
-  @media #{$landscape} { display: none; }
+  @media #{$landscape} { min-height: 32px; }
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  margin: 0;
+  line-height: 0;
+  img { height: 52px; width: auto; }
+  @media #{$portrait} { img { height: 40px; } }
+  @media #{$landscape} { img { height: 30px; } }
 }
 
-.about {
-  color: $ink-2;
-  text-decoration: none;
-  font-size: 14px;
-  padding: 12px 0;
-  &:hover { color: $ink; }
+// Header credit is hidden on phones; a compact one sits under the buttons instead.
+.header > a { @media #{$portrait} { display: none; } }
+
+.phoneCredit {
+  display: none;
+  @media #{$portrait} { display: flex; justify-content: center; }
 }
 
 .hero {
@@ -83,6 +82,7 @@
   letter-spacing: 0.14em;
   color: $ink-2;
   @media #{$portrait} { font-size: 11px; }
+  @media #{$landscape} { display: none; }
 }
 
 .title {

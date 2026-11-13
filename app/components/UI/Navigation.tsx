@@ -7,6 +7,7 @@ import { useFocusBody } from '@/app/lib/useFocusBody';
 import { bodyDotSize } from '@/app/lib/focusBody';
 import PlanetGlyph from './PlanetGlyph';
 import { IconSearch, IconMore, LogoMark } from './icons';
+import { DeltaVLogo } from './Brand';
 import DestinationPicker from './DestinationPicker';
 import styles from './Navigation.module.scss';
 
@@ -38,7 +39,7 @@ export default function Navigation() {
               aria-expanded={pickerOpen}
               onClick={() => setPickerOpen(!pickerOpen)}
             >
-              <LogoMark size={20} />
+              <LogoMark size={28} />
             </button>
           ) : (
             <button
@@ -88,8 +89,7 @@ export default function Navigation() {
 
       {layout === 'desktop' && (
         <button type="button" className={styles.brand} onClick={() => setShowWelcome(true)} aria-label="Delta-V, back to start screen">
-          <LogoMark size={22} />
-          <span>Delta-V</span>
+          <DeltaVLogo height={30} alt="" />
         </button>
       )}
 
