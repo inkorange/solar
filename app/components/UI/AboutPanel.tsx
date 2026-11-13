@@ -91,7 +91,7 @@ export default function AboutPanel() {
 
         <div className={styles.body}>
           <section className={styles.intro}>
-            <h2 id="about-title">How long does it take to get there?</h2>
+            <h2 id="about-title">Chart a course across the solar system.</h2>
             <p>
               Delta-V is a solar system propulsion simulator. Pick any planet, choose an engine and fly the trip on
               real astronomical data and orbital mechanics. You’ll see why a chemical rocket takes years to reach

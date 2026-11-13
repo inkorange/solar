@@ -30,7 +30,7 @@ import { useStore } from '@/app/store/useStore';
 import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import { getPropulsionById, calculateDistanceTraveled, calculateCurrentSpeed, getFlightPhase, calculateTravelTime } from '@/app/data/propulsion';
 
-function SceneUpdater() {
+function SceneUpdater({ active }: { active: boolean }) {
   const updateSimulationTime = useStore((state) => state.updateSimulationTime);
   const updateJourneyProgress = useStore((state) => state.updateJourneyProgress);
   const journeyStatus = useStore((state) => state.journeyStatus);
@@ -41,6 +41,10 @@ function SceneUpdater() {
   const completeJourney = useStore((state) => state.completeJourney);
 
   useFrame((_state, delta) => {
+    // Don't tick the store until the scene has mounted. A store update every frame re-renders this
+    // root at a higher priority than the Suspense retry, which starves it: the textures finish
+    // downloading in about a second but the scene then takes 30s+ (or never) to appear.
+    if (!active) return;
     updateSimulationTime(delta);
 
     // Update journey progress if traveling
@@ -94,6 +98,7 @@ function CameraController() {
   const { camera } = useThree();
   const controlsRef = useRef<OrbitControlsRef | null>(null);
   const { cameraTarget, focusedPlanetName, cameraMode, journeyStatus, timeSpeed } = useStore();
+  const showWelcome = useStore((st) => st.showWelcome);
 
   // Track last target to prevent re-animation
   const lastTargetRef = useRef<string>('');
@@ -351,8 +356,9 @@ function CameraController() {
       rotateSpeed={0.8}
       enableDamping={enableDamping}
       dampingFactor={dampingFactor}
-      autoRotate={false}
-      autoRotateSpeed={0}
+      // Slow orbit behind the splash; stops as soon as it is dismissed.
+      autoRotate={showWelcome}
+      autoRotateSpeed={0.35}
     />
   );
 }
@@ -440,14 +446,19 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
 
 export default function SolarSystem() {
   const [isLoading, setIsLoading] = useState(true);
+  // The cover stays mounted while it fades out, then is removed.
+  const [loaderGone, setLoaderGone] = useState(false);
   // The splash screen covers loading; only show the spinner text once it's dismissed.
   const hideLoaderText = useStore((s) => s.showWelcome);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000000' }}>
       {/* Loading indicator overlay with backdrop */}
-      {isLoading && (
+      {!loaderGone && (
         <div
+          onTransitionEnd={(e) => {
+            if (e.target === e.currentTarget && !isLoading) setLoaderGone(true);
+          }}
           style={{
             position: 'absolute',
             top: 0,
@@ -459,6 +470,10 @@ export default function SolarSystem() {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
+            // Fade the black cover out so the scene eases in instead of popping.
+            opacity: isLoading ? 1 : 0,
+            transition: 'opacity 1.4s ease',
+            pointerEvents: isLoading ? 'auto' : 'none',
           }}
         >
           <div
@@ -504,7 +519,7 @@ export default function SolarSystem() {
         shadows
       >
         {/* Scene updater component */}
-        <SceneUpdater />
+        <SceneUpdater active={!isLoading} />
 
         {/* Loading tracker */}
         <LoadingTracker onLoadComplete={() => setIsLoading(false)} />
