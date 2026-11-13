@@ -93,7 +93,7 @@
   letter-spacing: -0.035em;
   text-wrap: balance;
 
-  @media #{$landscape} { font-size: 36px; line-height: 1.02; }
+  @media #{$landscape} { font-size: 32px; line-height: 1.02; }
 }
 
 .lede {
@@ -113,8 +113,10 @@
   flex-wrap: wrap;
   gap: 14px;
 
-  @media #{$portrait} { flex-direction: column; align-items: stretch; gap: 10px; }
-  @media #{$landscape} { gap: 10px; }
+  margin-block: 8px;
+
+  @media #{$portrait} { flex-direction: column; align-items: stretch; gap: 10px; margin-block: 10px; }
+  @media #{$landscape} { gap: 10px; margin-block: 12px; }
 }
 
 .launch {
