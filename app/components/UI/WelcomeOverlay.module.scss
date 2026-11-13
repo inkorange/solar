@@ -1,348 +1,261 @@
+@use './hud' as *;
+
+// Cinematic splash: the live 3D scene stays visible; a vignette carries legibility.
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
+  inset: 0;
   z-index: 1000;
+  color: $ink;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'header header'
+    'hero   hero'
+    'footer footer';
+  padding: 32px 56px 40px;
+  box-sizing: border-box;
+  background:
+    linear-gradient(90deg, rgba(4, 6, 10, 0.92) 0%, rgba(4, 6, 10, 0.55) 42%, rgba(4, 6, 10, 0) 72%),
+    linear-gradient(0deg, rgba(4, 6, 10, 0.85) 0%, rgba(4, 6, 10, 0) 38%);
+  animation: fadeIn 0.6s ease both;
+  overflow-y: auto;
+
+  @media #{$portrait} {
+    padding: max(16px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, rgba(4, 6, 10, 0.97) 0%, rgba(4, 6, 10, 0.86) 50%, rgba(4, 6, 10, 0.1) 80%);
+  }
+
+  @media #{$landscape} {
+    padding: 16px max(32px, env(safe-area-inset-left));
+    background: linear-gradient(90deg, rgba(4, 6, 10, 0.95) 0%, rgba(4, 6, 10, 0.7) 45%, rgba(4, 6, 10, 0) 75%);
+  }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 44px;
+
+  @media #{$landscape} { display: none; }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.about {
+  color: $ink-2;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 12px 0;
+  &:hover { color: $ink; }
+}
+
+.hero {
+  grid-area: hero;
+  align-self: center;
   display: flex;
   flex-direction: column;
+  gap: 28px;
+  max-width: 640px;
+  // Opacity-only: a transform here would trap the fixed-position "New" card.
+  animation: fadeIn 0.7s ease 0.1s both;
+
+  @media #{$portrait} { align-self: end; gap: 18px; }
+  @media #{$landscape} { gap: 12px; max-width: 460px; }
+}
+
+.eyebrow {
+  @include eyebrow;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: $ink-2;
+  @media #{$portrait} { font-size: 11px; }
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(40px, 5.4vw, 76px);
+  line-height: 0.98;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+
+  @media #{$landscape} { font-size: 36px; line-height: 1.02; }
+}
+
+.lede {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.55;
+  color: $ink-2;
+  max-width: 520px;
+
+  @media #{$portrait} { font-size: 16px; }
+  @media #{$landscape} { font-size: 15px; }
+}
+
+.actions {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+
+  @media #{$portrait} { flex-direction: column; align-items: stretch; gap: 10px; }
+  @media #{$landscape} { gap: 10px; }
+}
+
+.launch {
+  @include primary-button;
+  height: 56px;
+  padding: 0 30px;
+  border-radius: 999px;
+  font-size: 17px;
+
+  @media #{$landscape} { height: 48px; font-size: 16px; }
+}
+
+.secondary {
+  @include reset-button;
+  @include focus-ring;
+  height: 56px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: $fill;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 16px;
+  font-weight: 500;
+  &:hover { background: rgba(255, 255, 255, 0.1); }
+
+  @media #{$portrait} { height: 52px; }
+  @media #{$landscape} { height: 48px; font-size: 14px; }
+}
+
+.hint {
+  font-family: $mono;
+  font-size: 12px;
+  color: $ink-muted;
+  margin-left: 6px;
+
+  kbd {
+    font-family: inherit;
+    padding: 3px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+    color: $ink-2;
+  }
+
+  @media (hover: none) { display: none; }
+}
+
+// "New" card — bottom-right on desktop, inline under the buttons on phones.
+.newCard {
+  @include reset-button;
+  @include glass(rgba(8, 11, 18, 0.72));
+  @include focus-ring;
+  position: fixed;
+  right: 56px;
+  bottom: 40px;
+  width: 400px;
+  max-width: calc(100vw - 112px);
+  display: flex;
+  align-items: center;
   gap: 16px;
-  animation: fadeIn 0.5s ease;
+  padding: 12px 18px 12px 12px;
+  border-radius: 16px;
+  text-align: left;
+  animation: rise 0.7s ease 0.35s both;
+  &:hover { border-color: $line-strong; }
 
-  @media (max-width: 768px) {
-    justify-content: flex-start;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 20px 10px;
+  @media #{$portrait} {
+    position: static;
+    width: auto;
+    max-width: none;
+    padding: 10px;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  @media #{$landscape} {
+    position: static;
+    width: auto;
+    padding: 0;
+    background: none;
+    border: 0;
+    backdrop-filter: none;
+    .thumb, .newBody { display: none; }
   }
+}
 
-  .modal {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    backdrop-filter: blur(20px);
-    padding: 48px;
-    max-width: 900px;
-    max-height: 90vh;
-    overflow-y: auto;
-    color: var(--foreground);
-    animation: slideUp 0.5s ease;
+.thumb {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    @keyframes slideUp {
-      from {
-        transform: translateY(50px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
+  @media #{$portrait} { flex-basis: 44px; width: 44px; height: 44px; border-radius: 8px; }
+}
 
-    @media (max-width: 768px) {
-      padding: 24px 16px;
-      max-height: none;
-      max-width: calc(100vw - 20px);
-      border-radius: 12px;
-    }
+.newText { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 
-    h1 {
-      font-size: 32px;
-      font-weight: 700;
-      margin: 0 0 12px 0;
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+.newTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  @media #{$landscape} { font-size: 13px; font-weight: 500; color: $ink-2; }
+}
 
-      @media (max-width: 768px) {
-        font-size: 22px;
-      }
-    }
+.badge {
+  font-family: $mono;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $on-accent;
+  background: #f5c26b;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
 
-    .subtitle {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 24px;
+.newBody {
+  font-size: 13px;
+  line-height: 1.45;
+  color: $ink-2;
+  @media #{$portrait} { font-size: 12px; }
+}
 
-      @media (max-width: 768px) {
-        font-size: 14px;
-        margin-bottom: 16px;
-      }
-    }
+.footer {
+  grid-area: footer;
+  animation: rise 0.7s ease 0.25s both;
+  @media #{$portrait}, #{$landscape} { display: none; }
+}
 
-    .content {
-      display: flex;
-      gap: 32px;
-      align-items: flex-start;
+.stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
 
-      @media (max-width: 768px) {
-        flex-direction: column;
-      }
-    }
-
-    .leftColumn {
-      flex: 1;
-    }
-
-    .rightColumn {
-      width: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-
-      @media (max-width: 768px) {
-        width: 100%;
-      }
-    }
-
-    .features {
-      margin-bottom: 24px;
-
-      @media (max-width: 768px) {
-        margin-bottom: 16px;
-      }
-
-      h2 {
-        font-size: 18px;
-        font-weight: 600;
-        margin: 0 0 16px 0;
-        color: var(--accent-primary);
-
-        @media (max-width: 768px) {
-          font-size: 16px;
-        }
-      }
-
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-
-        li {
-          padding: 8px 0;
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.8);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-
-          @media (max-width: 768px) {
-            padding: 6px 0;
-            font-size: 13px;
-          }
-
-          &:before {
-            content: '→';
-            color: var(--accent-primary);
-            font-weight: bold;
-          }
-        }
-      }
-    }
-
-    .controls {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 20px;
-
-      h3 {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: rgba(255, 255, 255, 0.6);
-        margin: 0 0 12px 0;
-        font-weight: 600;
-      }
-
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-
-        li {
-          padding: 6px 0;
-          font-size: 13px;
-          color: rgba(255, 255, 255, 0.7);
-          display: flex;
-          justify-content: space-between;
-
-          strong {
-            color: var(--accent-primary);
-            font-family: var(--font-geist-mono);
-          }
-        }
-      }
-    }
-
-    .educationalNote {
-      background: rgba(96, 165, 250, 0.1);
-      border: 1px solid rgba(96, 165, 250, 0.3);
-      border-radius: 12px;
-      padding: 20px;
-
-      @media (max-width: 768px) {
-        padding: 12px;
-      }
-
-      h3 {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--accent-primary);
-        margin: 0 0 8px 0;
-        font-weight: 600;
-      }
-
-      p {
-        font-size: 13px;
-        line-height: 1.6;
-        color: rgba(255, 255, 255, 0.8);
-        margin: 0;
-
-        @media (max-width: 768px) {
-          font-size: 12px;
-        }
-      }
-    }
-
-    .startButton {
-      padding: 16px 32px;
-      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-      border: none;
-      border-radius: 12px;
-      color: white;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-family: var(--font-geist-sans);
-      margin-bottom: 24px;
-
-      @media (max-width: 768px) {
-        width: 100%;
-        padding: 14px 24px;
-        font-size: 15px;
-        margin-bottom: 16px;
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
-    }
-  }
-
-  .newFeature {
-    background: linear-gradient(135deg, rgba(30, 136, 229, 0.15), rgba(96, 165, 250, 0.15));
-    border: 1px solid rgba(30, 136, 229, 0.4);
-    border-radius: 12px;
-    padding: 16px 24px;
-    max-width: 900px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    animation: slideUp 0.6s ease 0.2s backwards;
-
-    @keyframes slideUp {
-      from {
-        transform: translateY(20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    .featureImage {
-      flex-shrink: 0;
-      width: 120px;
-      height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      overflow: hidden;
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    .featureContent {
-      flex: 1;
-
-      h4 {
-        font-size: 15px;
-        font-weight: 600;
-        margin: 0 0 6px 0;
-        color: #60a5fa;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .badge {
-          background: linear-gradient(135deg, #1e88e5, #60a5fa);
-          color: white;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          padding: 4px 10px;
-          border-radius: 6px;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-      }
-
-      p {
-        font-size: 13px;
-        line-height: 1.5;
-        color: rgba(255, 255, 255, 0.8);
-        margin: 0;
-      }
-    }
-
-    @media (max-width: 768px) {
-      max-width: calc(100vw - 20px);
-      flex-direction: column;
-      align-items: center;
-      padding: 12px 16px;
-
-      .featureImage {
-        width: 60px;
-        height: 60px;
-      }
-
-      .featureContent {
-        text-align: center;
-
-        h4 {
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        p {
-          font-size: 12px;
-        }
-      }
-    }
-  }
+  li { display: flex; flex-direction: column; gap: 6px; }
+  strong { font-family: $mono; font-size: 26px; font-weight: 500; }
+  span { font-size: 13px; color: $ink-muted; }
 }

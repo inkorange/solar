@@ -421,6 +421,8 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
 
 export default function SolarSystem() {
   const [isLoading, setIsLoading] = useState(true);
+  // The splash screen covers loading; only show the spinner text once it's dismissed.
+  const hideLoaderText = useStore((s) => s.showWelcome);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000000' }}>
@@ -445,6 +447,7 @@ export default function SolarSystem() {
               textAlign: 'center',
               color: 'white',
               fontFamily: 'var(--font-geist-sans)',
+              visibility: hideLoaderText ? 'hidden' : 'visible',
             }}
           >
             <div

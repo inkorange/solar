@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '@/app/store/useStore';
 import {
   PROPULSION_SYSTEMS,
@@ -29,6 +29,18 @@ export default function PropulsionSelector() {
   } = useStore();
 
   const [selected, setSelected] = useState<PropulsionType | null>(null);
+
+  // Splash "Fly the Hail Mary" pre-selects a drive.
+  const suggestedPropulsion = useStore((s) => s.suggestedPropulsion);
+  const setSuggestedPropulsion = useStore((s) => s.setSuggestedPropulsion);
+  useEffect(() => {
+    if (journeyStatus === 'selecting-propulsion' && suggestedPropulsion) {
+      // Syncing a one-shot hint from the global store into local selection state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelected(suggestedPropulsion);
+      setSuggestedPropulsion(null);
+    }
+  }, [journeyStatus, suggestedPropulsion, setSuggestedPropulsion]);
   const [expandedCards, setExpandedCards] = useState<Set<PropulsionType>>(new Set());
   const [selectedOrigin, setSelectedOrigin] = useState<PlanetData | null>(
     PLANETS.find(p => p.name === 'Earth') || origin

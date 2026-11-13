@@ -1,263 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { PLANETS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
-import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
-import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
+import { useLayout } from '@/app/lib/useLayout';
+import { useFocusBody } from '@/app/lib/useFocusBody';
+import { bodyColor, bodyDotSize } from '@/app/lib/focusBody';
+import { IconSearch, IconMore, LogoMark } from './icons';
+import DestinationPicker from './DestinationPicker';
 import styles from './Navigation.module.scss';
 
+// The eight planets get a permanent spot on the rail; everything else lives in the picker.
+const RAIL_BODIES = PLANETS.filter((p) => p.type !== 'Natural Satellite' && p.type !== 'Dwarf Planet');
+
+/**
+ * Destinations.
+ * - desktop / landscape: slim icon rail on the left + a picker panel beside it
+ * - portrait: no rail (the bottom bar opens the picker as a sheet)
+ */
 export default function Navigation() {
-  const {
-    selectedPlanet,
-    setSelectedPlanet,
-    showNavigation,
-    setShowNavigation,
-    setCameraTarget,
-    simulationTime,
-    scaleMode,
-    setCameraMode,
-    isMobileView,
-  } = useStore();
-
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // On mobile, show a toggle button when navigation is hidden
-  if (!showNavigation) {
-    if (!isMobileView) return null;
-    return (
-      <button
-        className={styles.mobileNavToggle}
-        onClick={() => setShowNavigation(true)}
-        aria-label="Open navigation"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-    );
-  }
-
-  // Combine all celestial bodies for filtering
-  const allBodies = [...PLANETS, ...DWARF_PLANETS];
-
-  // Filter celestial bodies based on search term
-  const filteredBodies = searchTerm
-    ? allBodies.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : allBodies;
-
-  const terrestrialPlanets = filteredBodies.filter(p => p.type === 'Terrestrial');
-  const satellites = filteredBodies.filter(p => p.type === 'Natural Satellite');
-  const gasGiants = filteredBodies.filter(p => p.type.includes('Giant'));
-  const dwarfPlanets = filteredBodies.filter(p => p.type === 'Dwarf Planet');
-
-  const handlePlanetClick = (planet: typeof PLANETS[0]) => {
-    setSelectedPlanet(planet);
-
-    // Calculate planet's current position
-    const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-    const position = calculateCelestialBodyPosition(
-      simulationTime,
-      planet,
-      scaleFactor.DISTANCE,
-      allBodies,
-      scaleMode
-    );
-
-    // Calculate camera distance based on planet size
-    // Planet size in scene units
-    const planetRadius = (planet.diameter / 12742) * scaleFactor.SIZE * 5;
-    const planetDiameter = planetRadius * 2;
-
-    // Camera FOV is 60 degrees (from SolarSystem.tsx)
-    const fov = 60;
-    const fovRadians = (fov * Math.PI) / 180;
-
-    // Adjust camera distance based on planet size
-    // Keep larger planets (Jupiter, Saturn) at comfortable distance (~30% fill)
-    // Zoom MUCH closer for smaller planets (Earth, Mars, Mercury)
-    const jupiterDiameter = (142984 / 12742) * scaleFactor.SIZE * 5 * 2; // Jupiter reference
-    const sizeRatio = Math.min(planetDiameter / jupiterDiameter, 1);
-
-    // Very aggressive exponential scaling for small planets
-    // Jupiter: multiplier = 1.0 (30% fill)
-    // Calculate camera distance with better balance for large and small planets
-    // Larger planets closer, smaller planets much farther away
-    const distanceMultiplier = 1 + (20 * Math.pow(1 - sizeRatio, 1.2));
-
-    // Base distance - larger planets fill more of viewport, smaller planets fill less
-    // Use adaptive viewport fill based on size
-    const viewportFill = 0.15 + (0.1 * sizeRatio); // 0.15 for small, 0.25 for Jupiter
-    const baseDistance = planetDiameter / (viewportFill * 2 * Math.tan(fovRadians / 2));
-
-    // Apply inverse multiplier (higher multiplier = closer camera)
-    let cameraDistance = baseDistance / distanceMultiplier;
-
-    // Safety constraint: adaptive minimum distance based on planet size
-    // Account for rings if present (especially Saturn)
-    const visualRadius = planet.hasRings && planet.ringData
-      ? planetRadius * planet.ringData.outerRadiusRatio
-      : planetRadius;
-    // Smaller multiplier for larger planets, larger for small planets
-    const safetyMultiplier = 3 + (3 * (1 - sizeRatio)); // 3x for large, 6x for small
-    const minSafeDistance = visualRadius * safetyMultiplier;
-    cameraDistance = Math.max(cameraDistance, minSafeDistance);
-
-    // Position camera at an angle for better viewing
-    // Camera should be offset from the planet's actual 3D position
-    const angle = Math.PI / 4; // 45 degrees horizontal
-    const cameraPos: [number, number, number] = [
-      position.x + cameraDistance * Math.cos(angle),
-      position.y + cameraDistance * 0.3, // Slightly above the planet's orbital plane
-      position.z + cameraDistance * Math.sin(angle),
-    ];
-
-    setCameraTarget(cameraPos, planet.name);
-    setCameraMode('planet-focus'); // Switch to planet focus mode
-  };
+  const layout = useLayout();
+  const selectedPlanet = useStore((s) => s.selectedPlanet);
+  const pickerOpen = useStore((s) => s.pickerOpen);
+  const setPickerOpen = useStore((s) => s.setPickerOpen);
+  const setShowWelcome = useStore((s) => s.setShowWelcome);
+  const focusBody = useFocusBody();
 
   return (
-    <div className={styles.navigation}>
-      {isMobileView && (
-        <button
-          className={styles.mobileCloseNav}
-          onClick={() => setShowNavigation(false)}
-          aria-label="Close navigation"
-        >
-          ×
+    <>
+      {layout !== 'portrait' && (
+        <nav className={styles.rail} aria-label="Destinations">
+          {layout === 'landscape' ? (
+            <button
+              type="button"
+              className={styles.railButton}
+              aria-label="All destinations and search"
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen(!pickerOpen)}
+            >
+              <LogoMark size={20} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.railButton}
+              aria-label="Search destinations (/)"
+              aria-expanded={pickerOpen}
+              data-tip="Search  /"
+              onClick={() => setPickerOpen(!pickerOpen)}
+            >
+              <IconSearch />
+            </button>
+          )}
+          <span className={styles.divider} aria-hidden />
+          {RAIL_BODIES.map((body) => {
+            const size = bodyDotSize(body, layout === 'landscape' ? 15 : 17, layout === 'landscape' ? 7 : 8);
+            return (
+              <button
+                key={body.name}
+                type="button"
+                className={styles.railPlanet}
+                aria-label={body.name}
+                aria-current={selectedPlanet?.name === body.name ? 'true' : undefined}
+                data-tip={body.name}
+                onClick={() => focusBody(body)}
+              >
+                <span
+                  className={styles.dot}
+                  style={{ width: size, height: size, background: bodyColor(body.name) }}
+                />
+              </button>
+            );
+          })}
+          {layout === 'desktop' && (
+            <>
+              <span className={styles.divider} aria-hidden />
+              <button
+                type="button"
+                className={styles.railButton}
+                aria-label="Moons and dwarf planets"
+                data-tip="Moons & dwarf planets"
+                onClick={() => setPickerOpen(!pickerOpen)}
+              >
+                <IconMore />
+              </button>
+            </>
+          )}
+        </nav>
+      )}
+
+      {layout === 'desktop' && (
+        <button type="button" className={styles.brand} onClick={() => setShowWelcome(true)} aria-label="Delta-V, back to start screen">
+          <LogoMark size={22} />
+          <span>Delta-V</span>
         </button>
       )}
-      <h2>Solar System</h2>
 
-      {/* Search/Filter */}
-      <div className={styles.searchContainer}>
-        <input
-          type="text"
-          placeholder="Search planets..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={styles.searchInput}
-        />
-        {searchTerm && (
-          <button
-            className={styles.clearButton}
-            onClick={() => setSearchTerm('')}
-            aria-label="Clear search"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      {terrestrialPlanets.length > 0 && (
-        <>
-          <div className={styles.groupTitle}>Terrestrial Planets</div>
-      <ul className={styles.planetList}>
-        {terrestrialPlanets.map((planet) => (
-          <li key={planet.name}>
-            <button
-              className={`${styles.planetButton} ${selectedPlanet?.name === planet.name ? styles.selected : ''}`}
-              onClick={() => handlePlanetClick(planet)}
-            >
-              <div>
-                <div className={styles.planetName}>{planet.name}</div>
-                <div className={styles.planetType}>{planet.type}</div>
-              </div>
-              <div style={{ fontSize: '18px' }}>
-                {planet.name === 'Mercury' && '☿'}
-                {planet.name === 'Venus' && '♀'}
-                {planet.name === 'Earth' && '🌍'}
-                {planet.name === 'Mars' && '♂'}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
-        </>
-      )}
-
-      {satellites.length > 0 && (
-        <>
-          <div className={styles.groupTitle}>Satellites</div>
-      <ul className={styles.planetList}>
-        {satellites.map((planet) => (
-          <li key={planet.name}>
-            <button
-              className={`${styles.planetButton} ${selectedPlanet?.name === planet.name ? styles.selected : ''}`}
-              onClick={() => handlePlanetClick(planet)}
-            >
-              <div>
-                <div className={styles.planetName}>{planet.name}</div>
-                <div className={styles.planetType}>{planet.parentPlanet}</div>
-              </div>
-              <div style={{ fontSize: '18px' }}>
-                {planet.name === 'Moon' && '🌙'}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
-        </>
-      )}
-
-      {gasGiants.length > 0 && (
-        <>
-          <div className={styles.groupTitle}>Gas & Ice Giants</div>
-      <ul className={styles.planetList}>
-        {gasGiants.map((planet) => (
-          <li key={planet.name}>
-            <button
-              className={`${styles.planetButton} ${selectedPlanet?.name === planet.name ? styles.selected : ''}`}
-              onClick={() => handlePlanetClick(planet)}
-            >
-              <div>
-                <div className={styles.planetName}>{planet.name}</div>
-                <div className={styles.planetType}>{planet.type}</div>
-              </div>
-              <div style={{ fontSize: '18px' }}>
-                {planet.name === 'Jupiter' && '♃'}
-                {planet.name === 'Saturn' && '♄'}
-                {planet.name === 'Uranus' && '♅'}
-                {planet.name === 'Neptune' && '♆'}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
-        </>
-      )}
-
-      {dwarfPlanets.length > 0 && (
-        <>
-          <div className={styles.groupTitle}>Dwarf Planets</div>
-          <ul className={styles.planetList}>
-            {dwarfPlanets.map((planet) => (
-              <li key={planet.name}>
-                <button
-                  className={`${styles.planetButton} ${selectedPlanet?.name === planet.name ? styles.selected : ''}`}
-                  onClick={() => handlePlanetClick(planet)}
-                >
-                  <div>
-                    <div className={styles.planetName}>{planet.name}</div>
-                    <div className={styles.planetType}>{planet.type}</div>
-                  </div>
-                  <div style={{ fontSize: '18px' }}>
-                    {planet.name === 'Pluto' && '♇'}
-                    {planet.name === 'Eris' && '⯰'}
-                    {planet.name === 'Haumea' && '🥚'}
-                    {planet.name === 'Makemake' && '🗿'}
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {filteredBodies.length === 0 && (
-        <div className={styles.noResults}>No celestial bodies found</div>
-      )}
-    </div>
+      {pickerOpen && <DestinationPicker layout={layout} />}
+    </>
   );
 }

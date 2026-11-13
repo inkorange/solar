@@ -29,6 +29,20 @@ export default function KeyboardHandler() {
         return;
       }
 
+      const state = useStore.getState();
+      // The splash screen handles its own keys (Enter / Esc).
+      if (state.showWelcome) return;
+      // Let a focused button handle Space/Enter natively (avoids double toggles).
+      if (target.tagName === 'BUTTON' && (event.key === ' ' || event.key === 'Enter')) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        // ⌘K / Ctrl+K opens the destination picker
+        if (event.key.toLowerCase() === 'k') {
+          event.preventDefault();
+          state.setPickerOpen(!state.pickerOpen);
+        }
+        return;
+      }
+
       // Don't allow controls when propulsion selector is open
       if (journeyStatus === 'selecting-propulsion') {
         return;
@@ -86,10 +100,24 @@ export default function KeyboardHandler() {
           toggleFPS();
           break;
 
-        // Esc: Close info panel (if needed in the future)
-        case 'escape':
-          // Can be used for closing panels
+        // /: open destination search
+        case '/':
+          event.preventDefault();
+          useStore.getState().setPickerOpen(true);
           break;
+
+        // H: hide / show the interface
+        case 'h':
+          useStore.getState().toggleAllUI();
+          break;
+
+        // Esc: close picker / layers first, then the info panel
+        case 'escape': {
+          const st = useStore.getState();
+          if (st.pickerOpen) st.setPickerOpen(false);
+          else if (st.layersOpen) st.setLayersOpen(false);
+          break;
+        }
       }
     };
 

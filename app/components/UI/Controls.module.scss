@@ -1,290 +1,371 @@
-.controlsWrapper {
+@use './hud' as *;
+
+/* ---------- shared atoms ---------- */
+
+.play {
+  @include primary-button;
+  border-radius: 999px;
+  flex: 0 0 44px;
+}
+
+.iconBtn { @include icon-button(44px); @include focus-ring; }
+
+.sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: $line-strong;
+  flex: none;
+}
+
+.date {
+  @include reset-button;
+  @include focus-ring;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  font-family: $mono;
+  font-size: 13px;
+  color: $ink;
+  white-space: nowrap;
+  &:hover, &[aria-expanded='true'] { background: $fill; }
+}
+
+.time { font-size: 11px; color: $ink-muted; }
+
+.segments { display: flex; gap: 2px; }
+
+.segment {
+  @include reset-button;
+  @include focus-ring;
+  height: 36px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-family: $mono;
+  font-size: 12px;
+  color: $ink-muted;
+  &:hover { color: $ink; background: $fill; }
+  &[aria-checked='true'] { background: $fill-active; color: $ink; }
+}
+
+.speedChip {
+  @include reset-button;
+  @include focus-ring;
+  height: 36px;
+  min-width: 52px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: $fill-active;
+  color: $ink;
+  font-family: $mono;
+  font-size: 12px;
+  flex: none;
+}
+
+.kbd {
+  font-family: $mono;
+  font-size: 11px;
+  color: $ink-muted;
+  padding: 1px 6px;
+  border: 1px solid $line-strong;
+  border-radius: 5px;
+}
+
+/* ---------- desktop / landscape pill ---------- */
+
+.pill {
+  @include glass;
   position: fixed;
-  bottom: 0;
   left: 50%;
+  bottom: 24px;
   transform: translateX(-50%);
-  z-index: 100;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &.visible {
-    transform: translateX(-50%) translateY(0);
-  }
-
-  &.hidden {
-    transform: translateX(-50%) translateY(calc(100% - 12px));
-  }
-}
-
-.controls {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px 12px 0 0;
-  backdrop-filter: blur(10px);
-  padding: 16px 24px;
-  color: var(--foreground);
+  z-index: 110;
   display: flex;
   align-items: center;
-  gap: 24px;
-
-  .controlGroup {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: rgba(255, 255, 255, 0.7);
-      font-weight: 500;
-    }
-  }
-
-  .playPauseButton {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid var(--accent-primary);
-    background: rgba(96, 165, 250, 0.1);
-    color: var(--accent-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-
-    &:hover {
-      background: rgba(96, 165, 250, 0.2);
-      transform: scale(1.05);
-    }
-
-    &.paused {
-      border-color: var(--accent-secondary);
-      color: var(--accent-secondary);
-      background: rgba(167, 139, 250, 0.1);
-
-      &:hover {
-        background: rgba(167, 139, 250, 0.2);
-      }
-    }
-  }
-
-  .speedButtons {
-    display: flex;
-    gap: 4px;
-
-    button {
-      padding: 6px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--foreground);
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: var(--font-geist-mono);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: var(--accent-primary);
-      }
-
-      &.active {
-        background: rgba(96, 165, 250, 0.2);
-        border-color: var(--accent-primary);
-        color: var(--accent-primary);
-      }
-    }
-  }
-
-  .toggleGroup {
-    display: flex;
-    gap: 12px;
-
-    button {
-      padding: 8px 16px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(255, 255, 255, 0.7);
-      border-radius: 6px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: var(--font-geist-sans);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-
-      &.active {
-        background: rgba(96, 165, 250, 0.2);
-        border-color: var(--accent-primary);
-        color: var(--accent-primary);
-      }
-    }
-  }
-
-  .divider {
-    width: 1px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.2);
-  }
+  gap: 6px;
+  height: 56px;
+  padding: 0 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: $ink;
 }
 
-.toggleButton {
-  position: absolute;
-  top: -40px;
+.pillCompact {
+  // Centre between the rail (left) and the info drawer (right, when present).
   left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 32px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px 12px 0 0;
-  backdrop-filter: blur(10px);
-  color: var(--accent-primary);
-  cursor: pointer;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  height: 52px;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+// Landscape with the info drawer open: centre in the gap between rail (≈64px) and drawer (≈292px).
+.pillShifted { left: calc(64px + (100vw - 64px - 292px) / 2); }
+
+.utilities {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 110;
+  display: flex;
+  gap: 8px;
+}
+
+.utilBtn {
+  @include reset-button;
+  @include glass(rgba(8, 11, 18, 0.72));
+  @include focus-ring;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  z-index: 101;
-
-  &:hover {
-    background: rgba(96, 165, 250, 0.1);
-    transform: translateX(-50%) translateY(-2px);
-  }
-
-  svg {
-    transition: transform 0.2s ease;
-  }
+  color: $ink-2;
+  &:hover, &[aria-expanded='true'] { color: $ink; background: $glass-strong; }
 }
 
-.closeButton {
+.utilBtnLg {
+  @extend .utilBtn;
+  width: 52px;
+  height: 52px;
+  flex-basis: 52px;
+  border-radius: 14px;
+}
+
+/* ---------- portrait ---------- */
+
+.topBar {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeChip {
+  @include glass;
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 4px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: $ink;
+
+  .popWrap:has(.date) { flex: 1; min-width: 0; }
+  .date { width: 100%; height: 36px; padding: 0 8px; }
+}
+
+.bottomBar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 110;
+  display: flex;
+  gap: 8px;
+}
+
+.destinations {
+  @include reset-button;
+  @include glass;
+  @include focus-ring;
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: $ink;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ---------- popovers ---------- */
+
+.popWrap { position: relative; display: flex; }
+
+.popover {
+  @include glass($glass-strong);
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  bottom: calc(100% + 14px);
+  z-index: 130;
+  border-radius: 14px;
+  padding: 10px;
+  color: $ink;
+  box-sizing: border-box;
+  animation: popIn 0.14s ease both;
+  white-space: normal;
+
+  // Opens downward when the trigger lives at the top of the screen.
+  .topBar &, .utilities & { bottom: auto; top: calc(100% + 10px); }
+}
+
+@media #{$landscape} {
+  .popover { max-height: calc(100vh - 90px); overflow-y: auto; padding: 6px; }
+  .toggleRow, .menuItem { min-height: 36px; }
+  .popDivider { margin: 3px 0; }
+}
+
+@keyframes popIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.datePop {
+  left: 0;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  .topBar & { left: -40px; }
+}
+
+.layersPop {
+  right: 0;
+  width: 248px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcutsPop { right: 0; width: 260px; }
+
+.popLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: $ink-muted;
+}
+
+.dateInput {
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: $fill;
+  border: 1px solid $line;
+  color: $ink;
+  font-family: $mono;
+  font-size: 16px;
+  color-scheme: dark;
+}
+
+.popActions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.ghost {
+  @include reset-button;
+  @include focus-ring;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: $ink-2;
+  &:hover { background: $fill; color: $ink; }
+}
+
+.primarySmall {
+  @include primary-button;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.popDivider { height: 1px; background: $line; margin: 6px 0; }
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 8px;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  color: $ink-2;
   cursor: pointer;
+
+  > span:first-child { flex: 1; }
+  &:hover { background: $fill; }
+
+  input[type='checkbox'] {
+    appearance: none;
+    width: 34px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    flex: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: $ink;
+      transition: transform 0.15s ease;
+    }
+    &:checked { background: $accent; }
+    &:checked::after { transform: translateX(14px); background: $on-accent; }
+    @include focus-ring;
+  }
+}
+
+.miniSeg {
+  display: flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: $fill;
+
+  button {
+    @include reset-button;
+    @include focus-ring;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: $ink-muted;
+    &[aria-checked='true'] { background: $fill-active; color: $ink; }
+  }
+}
+
+.menuItem {
+  @include reset-button;
+  @include focus-ring;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--foreground);
-  }
+  gap: 10px;
+  font-size: 14px;
+  color: $ink-2;
+  text-align: left;
+  .kbd { margin-left: auto; }
+  &:hover { background: $fill; color: $ink; }
 }
 
-// Tablet optimization
-@media (max-width: 1024px) {
-  .controls {
-    padding: 12px 16px;
-    gap: 16px;
-    max-width: calc(100vw - 40px);
-    overflow-x: auto;
+.shortcuts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
 
-    .controlGroup {
-      gap: 8px;
-
-      label {
-        font-size: 11px;
-      }
-    }
-
-    .speedButtons button,
-    .toggleGroup button {
-      padding: 6px 10px;
-      font-size: 11px;
-    }
-
-    .playPauseButton {
-      width: 36px;
-      height: 36px;
-      font-size: 16px;
-    }
-
-    .divider {
-      height: 24px;
-    }
-  }
-
-  .toggleButton {
-    width: 50px;
-    height: 28px;
-  }
-}
-
-// Small tablets and large phones
-@media (max-width: 768px) {
-  .controlsWrapper {
-    &.hidden {
-      transform: translateX(-50%) translateY(calc(100% - 8px));
-    }
-  }
-
-  .controls {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 10px 10px;
-    width: calc(100vw - 20px);
-    max-width: calc(100vw - 20px);
-    border-radius: 12px 12px 0 0;
-    position: relative;
-
-    .divider {
-      display: none;
-    }
-
-    .controlGroup {
-      gap: 4px;
-
-      label {
-        font-size: 9px;
-      }
-    }
-
-    .speedButtons button {
-      padding: 4px 6px;
-      font-size: 9px;
-    }
-
-    .toggleGroup button {
-      padding: 5px 8px;
-      font-size: 9px;
-    }
-
-    .playPauseButton {
-      width: 32px;
-      height: 32px;
-      font-size: 14px;
-    }
-  }
-
-  .closeButton {
-    position: static;
-    margin-left: auto;
-    width: 28px;
-    height: 28px;
-  }
-
-  .toggleButton {
-    width: 80px;
-    height: 24px;
-    top: -28px;
-    border-radius: 8px 8px 0 0;
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
-  }
+  div { display: flex; align-items: center; gap: 12px; min-height: 32px; padding: 0 6px; }
+  dt { width: 64px; flex: none; }
+  dd { margin: 0; font-size: 13px; color: $ink-2; }
 }

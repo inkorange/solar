@@ -85,6 +85,14 @@ interface AppState {
   setActiveMobilePanel: (panel: 'navigation' | 'info' | 'travel' | 'controls' | null) => void;
   toggleAllUI: () => void;
 
+  // Redesigned HUD state
+  pickerOpen: boolean;
+  layersOpen: boolean;
+  suggestedPropulsion: PropulsionType | null;
+  setPickerOpen: (open: boolean) => void;
+  setLayersOpen: (open: boolean) => void;
+  setSuggestedPropulsion: (p: PropulsionType | null) => void;
+
   // Spaceship position (for Phase 2)
   spaceshipPosition: [number, number, number];
   setSpaceshipPosition: (position: [number, number, number]) => void;
@@ -303,6 +311,14 @@ export const useStore = create<AppState>((set) => ({
     };
   }),
   toggleAllUI: () => set((state) => ({ showAllUI: !state.showAllUI })),
+
+  // Redesigned HUD state
+  pickerOpen: false,
+  layersOpen: false,
+  suggestedPropulsion: null,
+  setPickerOpen: (open) => set(open ? { pickerOpen: true, layersOpen: false } : { pickerOpen: false }),
+  setLayersOpen: (open) => set(open ? { layersOpen: true, pickerOpen: false } : { layersOpen: false }),
+  setSuggestedPropulsion: (p) => set({ suggestedPropulsion: p }),
 
   // Spaceship
   spaceshipPosition: [0, 0, 10], // Start near Earth

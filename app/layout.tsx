@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Celestial Vehicle Propulsion Simulator",
+  title: "Delta-V · Solar System Propulsion Simulator",
   description: "Interactive 3D visualization exploring space travel through our solar system with different propulsion methods",
   keywords: ["space simulation", "solar system", "3D visualization", "propulsion", "astronomy", "education"],
   authors: [{ name: "Your Name" }],
