@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useStore } from '@/app/store/useStore';
 import {
   PROPULSION_SYSTEMS,
@@ -33,6 +33,8 @@ export default function PropulsionSelector() {
 
   const layout = useLayout();
   const [selected, setSelected] = useState<PropulsionType | null>(null);
+  const [scrollToSelected, setScrollToSelected] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // Splash "Fly the Hail Mary" pre-selects a drive.
   const suggestedPropulsion = useStore((s) => s.suggestedPropulsion);
@@ -43,10 +45,7 @@ export default function PropulsionSelector() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelected(suggestedPropulsion);
       setSuggestedPropulsion(null);
-      // Bring the pre-picked engine into view (it sits in the last group).
-      requestAnimationFrame(() =>
-        document.querySelector('[role="radio"][aria-checked="true"]')?.scrollIntoView({ block: 'center' })
-      );
+      setScrollToSelected(true);
     }
   }, [journeyStatus, suggestedPropulsion, setSuggestedPropulsion]);
   const [expandedCards, setExpandedCards] = useState<Set<PropulsionType>>(new Set());
@@ -79,6 +78,16 @@ export default function PropulsionSelector() {
 
     return courses;
   }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE, journeyStatus, origin, useFlipAndBurn]);
+
+  // Bring a pre-picked engine (Hail Mary → Astrophage, in the last group) into view once rows exist.
+  useEffect(() => {
+    if (!scrollToSelected || !selected) return;
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-engine="${selected}"]`);
+    if (!row) return; // rows not rendered yet — the effect re-runs when interceptCourses fills in
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScrollToSelected(false);
+  }, [scrollToSelected, selected, interceptCourses]);
 
   // If not in propulsion selection mode or missing data, render nothing (hooks already executed above)
   if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) {
@@ -207,7 +216,7 @@ export default function PropulsionSelector() {
           </div>
         </header>
 
-        <div className={styles.scrollContent}>
+        <div className={styles.scrollContent} ref={listRef}>
           {CATEGORIES.map((cat) => {
             const group = rows.filter((r) => r.propulsion.category === cat);
             if (!group.length) return null;
@@ -220,7 +229,11 @@ export default function PropulsionSelector() {
                     const isExpanded = expandedCards.has(propulsion.id);
                     const featured = propulsion.id === 'astrophage-drive';
                     return (
-                      <li key={propulsion.id} className={`${styles.row} ${isSelected ? styles.selected : ''}`}>
+                      <li
+                        key={propulsion.id}
+                        data-engine={propulsion.id}
+                        className={`${styles.row} ${isSelected ? styles.selected : ''}`}
+                      >
                         <button
                           type="button"
                           role="radio"

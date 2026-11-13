@@ -50,12 +50,29 @@
   margin: 0;
   line-height: 0;
   img { height: clamp(64px, 8vw, 96px); width: auto; }
-  @media #{$portrait} { img { height: 64px; } }
+  @media #{$portrait} { img { height: 52px; } }
   @media #{$landscape} { img { height: 44px; } }
 }
 
-// Header credit is hidden on phones; a compact one sits under the buttons instead.
-.header > a { @media #{$portrait} { display: none; } }
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  // Phones: keep "How it works", drop the header credit (a compact one sits under the buttons).
+  > a { @media #{$portrait} { display: none; } }
+}
+
+.howLink {
+  @include reset-button;
+  @include focus-ring;
+  min-height: 44px;
+  font-size: 14px;
+  color: $ink-2;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  &:hover { color: $ink; }
+}
 
 .phoneCredit {
   display: none;
@@ -120,26 +137,15 @@
 }
 
 .launch {
-  @include primary-button;
-  height: 56px;
+  @include btn-primary(56px);
   padding: 0 30px;
-  border-radius: 999px;
   font-size: 17px;
 
   @media #{$landscape} { height: 48px; font-size: 16px; }
 }
 
 .secondary {
-  @include reset-button;
-  @include focus-ring;
-  height: 56px;
-  padding: 0 24px;
-  border-radius: 999px;
-  background: $fill;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  font-size: 16px;
-  font-weight: 500;
-  &:hover { background: rgba(255, 255, 255, 0.1); }
+  @include btn-secondary(56px);
 
   @media #{$portrait} { height: 52px; }
   @media #{$landscape} { height: 48px; font-size: 14px; }
@@ -167,11 +173,9 @@
   @include reset-button;
   @include glass(rgba(8, 11, 18, 0.72));
   @include focus-ring;
-  position: fixed;
-  right: 56px;
-  bottom: 40px;
   width: 400px;
-  max-width: calc(100vw - 112px);
+  max-width: 100%;
+  flex: 0 1 400px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -256,9 +260,18 @@
 
 .footer {
   grid-area: footer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap; // narrow tablets: the card drops below the stats instead of colliding
+  gap: 24px 40px;
   animation: rise 0.7s ease 0.25s both;
   @media #{$portrait}, #{$landscape} { display: none; }
 }
+
+// Same card, two homes: footer row on tablet/desktop, under the buttons on phones.
+.inFooter { @media #{$portrait}, #{$landscape} { display: none; } }
+.inHero { display: none; @media #{$portrait}, #{$landscape} { display: flex; flex: none; } }
 
 .stats {
   list-style: none;
@@ -266,7 +279,7 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 40px;
+  gap: 16px clamp(24px, 4vw, 40px);
 
   li { display: flex; flex-direction: column; gap: 6px; }
   strong { font-family: $mono; font-size: 26px; font-weight: 500; }

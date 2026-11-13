@@ -31,7 +31,7 @@ export default function KeyboardHandler() {
 
       const state = useStore.getState();
       // The splash screen handles its own keys (Enter / Esc).
-      if (state.showWelcome) return;
+      if (state.showWelcome || state.aboutOpen) return;
       // Let a focused button handle Space/Enter natively (avoids double toggles).
       if (target.tagName === 'BUTTON' && (event.key === ' ' || event.key === 'Enter')) return;
       if (event.metaKey || event.ctrlKey || event.altKey) {

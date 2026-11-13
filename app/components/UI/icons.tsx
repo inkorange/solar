@@ -62,6 +62,9 @@ export const IconKeyboard = ({ size, ...p }: P) => (
 export const IconMore = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><circle cx="6" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="18" cy="12" r="1.6" /></svg>
 );
+export const IconInfo = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 7.5h.01" /></svg>
+);
 export const IconArrowRight = ({ size = 16, ...p }: P) => (
   <svg {...base(size)} strokeWidth={2.2} {...p}><path d="M5 12h14" /><path d="M13 6l6 6-6 6" /></svg>
 );

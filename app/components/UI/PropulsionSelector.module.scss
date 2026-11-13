@@ -384,22 +384,14 @@
 .summaryHint { font-size: 13px; color: $ink-muted; }
 
 .cancelButton {
-  @include reset-button;
-  @include focus-ring;
-  height: 48px;
-  padding: 0 18px;
-  border-radius: 12px;
-  color: $ink-2;
-  &:hover { background: $fill; color: $ink; }
-  .portrait & { flex: 0 0 auto; border: 1px solid $line-strong; }
+  @include btn-secondary(52px);
+  .portrait & { flex: 0 0 auto; }
+  .landscape & { height: 44px; }
 }
 
 .confirmButton {
-  @include primary-button;
-  height: 48px;
-  padding: 0 24px;
-  border-radius: 12px;
-  font-size: 15px;
+  @include btn-primary(52px);
+  .landscape & { height: 44px; }
   &:disabled { background: rgba(255, 255, 255, 0.12); color: $ink-muted; cursor: not-allowed; filter: none; }
-  .portrait & { flex: 1; height: 52px; }
+  .portrait & { flex: 1; }
 }

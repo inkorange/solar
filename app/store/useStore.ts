@@ -89,6 +89,8 @@ interface AppState {
   pickerOpen: boolean;
   layersOpen: boolean;
   suggestedPropulsion: PropulsionType | null;
+  aboutOpen: boolean;
+  setAboutOpen: (open: boolean) => void;
   setPickerOpen: (open: boolean) => void;
   setLayersOpen: (open: boolean) => void;
   setSuggestedPropulsion: (p: PropulsionType | null) => void;
@@ -316,6 +318,8 @@ export const useStore = create<AppState>((set) => ({
   pickerOpen: false,
   layersOpen: false,
   suggestedPropulsion: null,
+  aboutOpen: false,
+  setAboutOpen: (open) => set(open ? { aboutOpen: true, pickerOpen: false, layersOpen: false } : { aboutOpen: false }),
   setPickerOpen: (open) => set(open ? { pickerOpen: true, layersOpen: false } : { pickerOpen: false }),
   setLayersOpen: (open) => set(open ? { layersOpen: true, pickerOpen: false } : { layersOpen: false }),
   setSuggestedPropulsion: (p) => set({ suggestedPropulsion: p }),

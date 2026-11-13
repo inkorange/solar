@@ -1,3 +1,5 @@
+@use './hud' as *;
+
 .panel {
   position: fixed;
   top: 84px;
@@ -228,13 +230,11 @@
     }
 
     .cancelButton {
-      background: rgba(231, 76, 60, 0.2);
-      border: 1px solid rgba(231, 76, 60, 0.4);
-      color: #e74c3c;
-
-      &:hover {
-        background: rgba(231, 76, 60, 0.3);
-      }
+      @include btn-secondary(48px);
+      width: 100%;
+      border-color: rgba(248, 113, 113, 0.45);
+      color: #fca5a5;
+      &:hover { background: rgba(248, 113, 113, 0.12); }
     }
   }
 }
@@ -305,22 +305,8 @@
   }
 
   .continueButton {
+    @include btn-primary(52px);
     width: 100%;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: var(--font-geist-sans);
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border: none;
-    color: white;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
-    }
   }
 }
 

@@ -1,0 +1,72 @@
+@use './hud' as *;
+
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: $ink;
+  color: #0a0e15;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+
+  // little arrow
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    margin-left: -5px;
+    border: 5px solid transparent;
+    border-top-color: $ink;
+  }
+
+  &[data-side='bottom'] {
+    bottom: auto;
+    top: calc(100% + 12px);
+    transform: translate(-50%, -4px);
+    &::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: $ink; }
+  }
+
+  &[data-align='end'] {
+    left: auto;
+    right: 0;
+    transform: translateY(-4px);
+    &::after { left: auto; right: 16px; margin-left: 0; }
+  }
+
+  kbd {
+    font-family: $mono;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(10, 14, 21, 0.1);
+    border: 1px solid rgba(10, 14, 21, 0.2);
+  }
+}
+
+// Show on real hover (not touch taps) and on keyboard focus; never while its popover is open.
+@media (hover: hover) {
+  .wrap:hover > .tip { opacity: 1; transform: translate(-50%, 0); }
+  .wrap:hover > .tip[data-align='end'] { transform: none; }
+}
+.wrap:has(:focus-visible) > .tip { opacity: 1; transform: translate(-50%, 0); }
+.wrap:has(:focus-visible) > .tip[data-align='end'] { transform: none; }
+.wrap:has([aria-expanded='true']) > .tip { display: none; }

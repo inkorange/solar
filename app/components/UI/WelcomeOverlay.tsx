@@ -46,7 +46,12 @@ export default function WelcomeOverlay() {
         <div className={styles.brand}>
           <DeltaVLogo height={96} />
         </div>
-        <InkOrangeCredit />
+        <div className={styles.headerRight}>
+          <button type="button" className={styles.howLink} onClick={() => useStore.getState().setAboutOpen(true)}>
+            How it works
+          </button>
+          <InkOrangeCredit />
+        </div>
       </header>
 
       <main className={styles.hero}>
@@ -68,19 +73,7 @@ export default function WelcomeOverlay() {
           </span>
         </div>
 
-        <button type="button" className={styles.newCard} onClick={flyHailMary}>
-          <span className={styles.thumb}>
-            <Image src="/project-hail-mary.jpg" alt="" width={64} height={64} />
-          </span>
-          <span className={styles.newText}>
-            <span className={styles.newTitle}>
-              <span className={styles.badge}>New</span> Astrophage Spin Drive
-            </span>
-            <span className={styles.newBody}>
-              Constant 1.5 g, with a flip-and-burn at the midpoint. Fly the ship from Project Hail Mary.
-            </span>
-          </span>
-        </button>
+        <NewCard className={styles.inHero} onClick={flyHailMary} />
         <div className={styles.phoneCredit}>
           <InkOrangeCredit compact />
         </div>
@@ -92,7 +85,28 @@ export default function WelcomeOverlay() {
           <li><strong>1× → 500k×</strong><span>time warp</span></li>
           <li><strong>Real</strong><span>orbits and travel times</span></li>
         </ul>
+        <NewCard className={styles.inFooter} onClick={flyHailMary} />
       </footer>
     </div>
+  );
+}
+
+/** The "New: Astrophage Spin Drive" card. Rendered in the hero on phones and in the footer row on
+ *  tablet/desktop, so it sits in normal flow next to the stats instead of floating over them. */
+function NewCard({ className, onClick }: { className: string; onClick: () => void }) {
+  return (
+<button type="button" className={`${styles.newCard} ${className}`} onClick={onClick}>
+      <span className={styles.thumb}>
+        <Image src="/project-hail-mary.jpg" alt="" width={64} height={64} />
+      </span>
+      <span className={styles.newText}>
+        <span className={styles.newTitle}>
+          <span className={styles.badge}>New</span> Astrophage Spin Drive
+        </span>
+        <span className={styles.newBody}>
+          Constant 1.5 g, with a flip-and-burn at the midpoint. Fly the ship from Project Hail Mary.
+        </span>
+      </span>
+    </button>
   );
 }

@@ -12,9 +12,10 @@ import {
   IconLayers,
   IconSearch,
   IconEyeOff,
-  IconKeyboard,
+  IconInfo,
   LogoMark,
 } from './icons';
+import Tip from './Tip';
 import styles from './Controls.module.scss';
 
 const SPEEDS = [
@@ -31,7 +32,7 @@ const CAMERA_MODES: { mode: Exclude<CameraMode, 'destination-preview'>; label: s
   { mode: 'planet-focus', label: 'Focus planet' },
 ];
 
-const SHORTCUTS: [string, string][] = [
+export const SHORTCUTS: [string, string][] = [
   ['Space', 'Play / pause'],
   ['1 – 5', 'Time speed'],
   ['C', 'Cycle camera'],
@@ -109,10 +110,11 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
  * Pieces
  * ------------------------------------------------------------------------- */
 
-function PlayPause({ size = 44 }: { size?: number }) {
+function PlayPause({ size = 44, tipSide = 'top' }: { size?: number; tipSide?: 'top' | 'bottom' }) {
   const isPaused = useStore((s) => s.isPaused);
   const setIsPaused = useStore((s) => s.setIsPaused);
   return (
+    <Tip label={isPaused ? 'Play' : 'Pause'} keys="Space" side={tipSide}>
     <button
       type="button"
       className={styles.play}
@@ -122,10 +124,11 @@ function PlayPause({ size = 44 }: { size?: number }) {
     >
       {isPaused ? <IconPlay size={size < 40 ? 14 : 16} /> : <IconPause size={size < 40 ? 14 : 16} />}
     </button>
+    </Tip>
   );
 }
 
-function DateButton({ showTime }: { showTime: boolean }) {
+function DateButton({ showTime, tipSide = 'top' }: { showTime: boolean; tipSide?: 'top' | 'bottom' }) {
   const date = useSimDate();
   const setSimulationTime = useStore((s) => s.setSimulationTime);
   const [open, setOpen] = useState(false);
@@ -144,6 +147,7 @@ function DateButton({ showTime }: { showTime: boolean }) {
 
   return (
     <div className={styles.popWrap} ref={wrap}>
+      <Tip label="Change date" side={tipSide}>
       <button
         type="button"
         className={styles.date}
@@ -161,6 +165,7 @@ function DateButton({ showTime }: { showTime: boolean }) {
           </span>
         )}
       </button>
+      </Tip>
       {open && (
         <div className={`${styles.popover} ${styles.datePop}`} role="dialog" aria-label="Simulation date">
           <label className={styles.popLabel}>
@@ -194,23 +199,24 @@ function SpeedSegments() {
   return (
     <div className={styles.segments} role="radiogroup" aria-label="Time speed">
       {SPEEDS.map(({ value, label }, i) => (
+        <Tip key={value} label={`Speed ${label}`} keys={String(i + 1)}>
         <button
-          key={value}
+
           type="button"
           role="radio"
           aria-checked={timeSpeed === value}
-          title={`${label} (${i + 1})`}
           className={styles.segment}
           onClick={() => setTimeSpeed(value)}
         >
           {label}
         </button>
+        </Tip>
       ))}
     </div>
   );
 }
 
-function SpeedCycle() {
+function SpeedCycle({ tipSide = 'top' }: { tipSide?: 'top' | 'bottom' }) {
   const timeSpeed = useStore((s) => s.timeSpeed);
   const setTimeSpeed = useStore((s) => s.setTimeSpeed);
   const next = () => {
@@ -218,6 +224,7 @@ function SpeedCycle() {
     setTimeSpeed(SPEEDS[(i + 1) % SPEEDS.length].value);
   };
   return (
+    <Tip label="Faster time" keys="1–5" side={tipSide}>
     <button
       type="button"
       className={styles.speedChip}
@@ -226,6 +233,7 @@ function SpeedCycle() {
     >
       {speedLabel(timeSpeed)}
     </button>
+    </Tip>
   );
 }
 
@@ -236,18 +244,19 @@ function CameraRadios() {
       {CAMERA_MODES.map(({ mode, label }) => {
         const Icon = CAMERA_ICONS[mode];
         return (
+          <Tip key={mode} label={label} keys="C">
           <button
-            key={mode}
+
             type="button"
             role="radio"
             aria-checked={cameraMode === mode}
             aria-label={label}
-            title={`${label} (C)`}
             className={styles.iconBtn}
             onClick={() => choose(mode)}
           >
             <Icon />
           </button>
+          </Tip>
         );
       })}
     </div>
@@ -286,6 +295,7 @@ export function CameraCycle({ className }: { className?: string }) {
   const { cycle, current } = useCamera();
   const Icon = CAMERA_ICONS[current.mode];
   return (
+    <Tip label={`View: ${current.label}`} keys="C">
     <button
       type="button"
       className={className ?? styles.iconBtn}
@@ -294,6 +304,7 @@ export function CameraCycle({ className }: { className?: string }) {
     >
       <Icon />
     </button>
+    </Tip>
   );
 }
 
@@ -307,7 +318,7 @@ function Toggle({ label, keyHint, on, onChange }: { label: string; keyHint?: str
   );
 }
 
-function LayersButton({ className, size }: { className?: string; size?: number }) {
+function LayersButton({ className, size, tipSide = 'top' }: { className?: string; size?: number; tipSide?: 'top' | 'bottom' }) {
   const layersOpen = useStore((s) => s.layersOpen);
   const setLayersOpen = useStore((s) => s.setLayersOpen);
   const s = useStore(
@@ -328,6 +339,7 @@ function LayersButton({ className, size }: { className?: string; size?: number }
 
   return (
     <div className={styles.popWrap} ref={wrap}>
+      <Tip label="Layers & display" side={tipSide} align={tipSide === 'bottom' ? 'end' : 'center'}>
       <button
         type="button"
         className={className ?? styles.iconBtn}
@@ -338,6 +350,7 @@ function LayersButton({ className, size }: { className?: string; size?: number }
       >
         <IconLayers />
       </button>
+      </Tip>
       {layersOpen && (
         <div className={`${styles.popover} ${styles.layersPop}`} role="dialog" aria-label="Layers">
           <Toggle label="Orbits" keyHint="O" on={s.showOrbits} onChange={s.toggleOrbits} />
@@ -359,6 +372,13 @@ function LayersButton({ className, size }: { className?: string; size?: number }
           <button
             type="button"
             className={styles.menuItem}
+            onClick={() => useStore.getState().setAboutOpen(true)}
+          >
+            <IconInfo size={16} /> About &amp; how to use
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
             onClick={() => {
               setLayersOpen(false);
               s.toggleAllUI();
@@ -372,34 +392,14 @@ function LayersButton({ className, size }: { className?: string; size?: number }
   );
 }
 
-function ShortcutsButton() {
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
-  useDismiss(open, () => setOpen(false), wrap);
+function AboutButton() {
+  const setAboutOpen = useStore((st) => st.setAboutOpen);
   return (
-    <div className={styles.popWrap} ref={wrap}>
-      <button
-        type="button"
-        className={styles.utilBtn}
-        aria-label="Keyboard shortcuts"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        <IconKeyboard />
+    <Tip label="About & how to use" side="bottom" align="end">
+      <button type="button" className={styles.utilBtn} aria-label="About and how to use" onClick={() => setAboutOpen(true)}>
+        <IconInfo />
       </button>
-      {open && (
-        <div className={`${styles.popover} ${styles.shortcutsPop}`} role="dialog" aria-label="Keyboard shortcuts">
-          <dl className={styles.shortcuts}>
-            {SHORTCUTS.map(([k, v]) => (
-              <div key={k}>
-                <dt><kbd className={styles.kbd}>{k}</kbd></dt>
-                <dd>{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      )}
-    </div>
+    </Tip>
   );
 }
 
@@ -426,11 +426,11 @@ export default function Controls() {
             <LogoMark size={28} />
           </div>
           <div className={styles.timeChip} role="group" aria-label="Time">
-            <PlayPause size={36} />
-            <DateButton showTime={false} />
-            <SpeedCycle />
+            <PlayPause size={36} tipSide="bottom" />
+            <DateButton showTime={false} tipSide="bottom" />
+            <SpeedCycle tipSide="bottom" />
           </div>
-          <LayersButton className={styles.utilBtn} />
+          <LayersButton className={styles.utilBtn} tipSide="bottom" />
         </div>
 
         <ViewSwitch />
@@ -467,10 +467,12 @@ export default function Controls() {
   return (
     <>
       <div className={styles.utilities}>
-        <ShortcutsButton />
-        <button type="button" className={styles.utilBtn} aria-label="Hide interface (H)" onClick={toggleAllUI}>
-          <IconEyeOff />
-        </button>
+        <AboutButton />
+        <Tip label="Hide interface" keys="H" side="bottom" align="end">
+          <button type="button" className={styles.utilBtn} aria-label="Hide interface (H)" onClick={toggleAllUI}>
+            <IconEyeOff />
+          </button>
+        </Tip>
       </div>
       <div className={styles.pill} role="toolbar" aria-label="Simulation controls">
         <PlayPause />

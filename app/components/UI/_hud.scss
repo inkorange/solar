@@ -60,6 +60,34 @@ $landscape: '(max-height: 500px) and (orientation: landscape)';
   color: $ink-muted;
 }
 
+// The two button styles used everywhere (matches the splash): pill-shaped primary + outlined secondary.
+@mixin btn-primary($height: 52px) {
+  @include primary-button;
+  height: $height;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-size: 16px;
+}
+
+@mixin btn-secondary($height: 52px) {
+  @include reset-button;
+  @include focus-ring;
+  height: $height;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: $fill;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: $ink;
+  font-size: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s ease;
+  &:hover { background: rgba(255, 255, 255, 0.1); }
+}
+
 @mixin primary-button {
   @include reset-button;
   background: $accent;

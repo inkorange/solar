@@ -12,6 +12,7 @@ import WelcomeOverlay from './components/UI/WelcomeOverlay';
 import PropulsionSelector from './components/UI/PropulsionSelector';
 import TravelInfoPanel from './components/UI/TravelInfoPanel';
 import FPSMonitor from './components/UI/FPSMonitor';
+import AboutPanel from './components/UI/AboutPanel';
 import KeyboardHandler from './components/KeyboardHandler';
 import { IconEye } from './components/UI/icons';
 import { useStore } from './store/useStore';
@@ -76,6 +77,7 @@ export default function Home() {
       {/* Modals manage their own visibility */}
       <PropulsionSelector />
       <WelcomeOverlay />
+      <AboutPanel />
     </>
   );
 }
