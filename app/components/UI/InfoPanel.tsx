@@ -6,7 +6,6 @@ import { PLANETS } from '@/app/data/planets';
 import { getMoonsForPlanet } from '@/app/data/moons';
 import { useLayout } from '@/app/lib/useLayout';
 import { bodyColor } from '@/app/lib/focusBody';
-import { CameraCycle } from './Controls';
 import { IconClose, IconArrowRight } from './icons';
 import styles from './InfoPanel.module.scss';
 
@@ -209,7 +208,6 @@ export default function InfoPanel() {
 
       {journeyStatus === 'idle' && (
         <footer className={styles.footer}>
-          {isSheet && <CameraCycle className={styles.camera} />}
           <button type="button" className={styles.travel} onClick={planTrip}>
             Plan trip to {body.name} <IconArrowRight />
           </button>

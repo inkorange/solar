@@ -132,6 +132,17 @@
   &:hover, &[aria-expanded='true'] { color: $ink; background: $glass-strong; }
 }
 
+.brandTile {
+  @include glass(rgba(8, 11, 18, 0.72));
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .utilBtnLg {
   @extend .utilBtn;
   width: 52px;
@@ -193,6 +204,35 @@
   color: $ink;
   font-size: 16px;
   font-weight: 600;
+}
+
+.viewSwitch {
+  @include glass;
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+  right: 12px;
+  z-index: 108;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 14px;
+}
+
+.viewBtn {
+  @include reset-button;
+  @include focus-ring;
+  width: 48px;
+  height: 52px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: $ink-muted;
+  span { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; }
+  &[aria-checked='true'] { background: $fill-active; color: $ink; span { color: $ink; } }
 }
 
 /* ---------- popovers ---------- */

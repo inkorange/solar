@@ -1,9 +1,7 @@
 @use './hud' as *;
 
 .brand {
-  @include reset-button;
   @include glass(rgba(8, 11, 18, 0.72));
-  @include focus-ring;
   position: fixed;
   top: 20px;
   left: 20px;

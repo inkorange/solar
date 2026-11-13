@@ -24,7 +24,6 @@ export default function Navigation() {
   const selectedPlanet = useStore((s) => s.selectedPlanet);
   const pickerOpen = useStore((s) => s.pickerOpen);
   const setPickerOpen = useStore((s) => s.setPickerOpen);
-  const setShowWelcome = useStore((s) => s.setShowWelcome);
   const focusBody = useFocusBody();
 
   return (
@@ -88,9 +87,9 @@ export default function Navigation() {
       )}
 
       {layout === 'desktop' && (
-        <button type="button" className={styles.brand} onClick={() => setShowWelcome(true)} aria-label="Delta-V, back to start screen">
-          <DeltaVLogo height={30} alt="" />
-        </button>
+        <div className={styles.brand}>
+          <DeltaVLogo height={30} />
+        </div>
       )}
 
       {pickerOpen && <DestinationPicker layout={layout} />}

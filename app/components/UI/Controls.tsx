@@ -248,6 +248,34 @@ function CameraRadios() {
   );
 }
 
+const SHORT_LABEL: Record<string, string> = { free: 'Free', 'follow-spaceship': 'Ship', 'planet-focus': 'Planet' };
+
+/** Portrait: always-visible, labelled view switch docked under the top bar (right edge). */
+function ViewSwitch() {
+  const { cameraMode, choose } = useCamera();
+  return (
+    <div className={styles.viewSwitch} role="radiogroup" aria-label="View">
+      {CAMERA_MODES.map(({ mode, label }) => {
+        const Icon = CAMERA_ICONS[mode];
+        return (
+          <button
+            key={mode}
+            type="button"
+            role="radio"
+            aria-checked={cameraMode === mode}
+            aria-label={label}
+            className={styles.viewBtn}
+            onClick={() => choose(mode)}
+          >
+            <Icon size={18} />
+            <span aria-hidden>{SHORT_LABEL[mode]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CameraCycle({ className }: { className?: string }) {
   const { cycle, current } = useCamera();
   const Icon = CAMERA_ICONS[current.mode];
@@ -379,7 +407,6 @@ export default function Controls() {
   const journeyStatus = useStore((s) => s.journeyStatus);
   const pickerOpen = useStore((s) => s.pickerOpen);
   const setPickerOpen = useStore((s) => s.setPickerOpen);
-  const setShowWelcome = useStore((s) => s.setShowWelcome);
   const toggleAllUI = useStore((s) => s.toggleAllUI);
   const journeying = journeyStatus === 'traveling' || journeyStatus === 'arrived';
 
@@ -388,9 +415,10 @@ export default function Controls() {
     return (
       <>
         <div className={styles.topBar}>
-          <button type="button" className={styles.utilBtn} aria-label="Delta-V, back to start screen" onClick={() => setShowWelcome(true)}>
+          {/* Brand only — the splash shows on first load and isn't reachable again. */}
+          <div className={styles.brandTile} role="img" aria-label="Delta-V">
             <LogoMark size={28} />
-          </button>
+          </div>
           <div className={styles.timeChip} role="group" aria-label="Time">
             <PlayPause size={36} />
             <DateButton showTime={false} />
@@ -399,12 +427,13 @@ export default function Controls() {
           <LayersButton className={styles.utilBtn} />
         </div>
 
+        <ViewSwitch />
+
         {showBottomBar && (
           <div className={styles.bottomBar} role="toolbar" aria-label="Explore">
             <button type="button" className={styles.destinations} onClick={() => setPickerOpen(true)}>
               <IconSearch size={18} /> Destinations
             </button>
-            <CameraCycle className={styles.utilBtnLg} />
           </div>
         )}
       </>
