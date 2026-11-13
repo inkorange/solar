@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useStore } from '@/app/store/useStore';
 import { PLANETS } from '@/app/data/planets';
@@ -8,24 +8,45 @@ import { IconArrowRight } from './icons';
 import { DeltaVLogo, InkOrangeCredit } from './Brand';
 import styles from './WelcomeOverlay.module.scss';
 
+const EXIT_MS = 1100;
+
 export default function WelcomeOverlay() {
   const showWelcome = useStore((s) => s.showWelcome);
   const setShowWelcome = useStore((s) => s.setShowWelcome);
   const launchRef = useRef<HTMLButtonElement>(null);
 
-  const launch = () => setShowWelcome(false);
+  // Exit transition: the aurora fades, the copy zooms towards the viewer and dissolves, then the
+  // splash unmounts and `after` runs. EXIT_MS must match the longest .leaving animation in the SCSS.
+  const [leaving, setLeaving] = useState(false);
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const dismiss = (after?: () => void) => {
+    if (exitTimer.current) return; // already leaving
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setLeaving(true);
+    exitTimer.current = setTimeout(() => {
+      exitTimer.current = null;
+      setLeaving(false);
+      setShowWelcome(false);
+      after?.();
+    }, reduced ? 250 : EXIT_MS);
+  };
+
+  useEffect(() => () => { if (exitTimer.current) clearTimeout(exitTimer.current); }, []);
+
+  const launch = () => dismiss();
 
   // Fly the Hail Mary: jump straight into propulsion selection with the Astrophage drive pre-picked.
-  const flyHailMary = () => {
-    const { setOrigin, setDestination, setJourneyStatus, setSuggestedPropulsion } = useStore.getState();
-    const earth = PLANETS.find((p) => p.name === 'Earth') ?? PLANETS[2];
-    const saturn = PLANETS.find((p) => p.name === 'Saturn') ?? PLANETS[6];
-    setShowWelcome(false);
-    setSuggestedPropulsion('astrophage-drive');
-    setOrigin(earth);
-    setDestination(saturn);
-    setJourneyStatus('selecting-propulsion');
-  };
+  const flyHailMary = () =>
+    dismiss(() => {
+      const { setOrigin, setDestination, setJourneyStatus, setSuggestedPropulsion } = useStore.getState();
+      const earth = PLANETS.find((p) => p.name === 'Earth') ?? PLANETS[2];
+      const saturn = PLANETS.find((p) => p.name === 'Saturn') ?? PLANETS[6];
+      setSuggestedPropulsion('astrophage-drive');
+      setOrigin(earth);
+      setDestination(saturn);
+      setJourneyStatus('selecting-propulsion');
+    });
 
   useEffect(() => {
     if (!showWelcome) return;
@@ -41,7 +62,11 @@ export default function WelcomeOverlay() {
   if (!showWelcome) return null;
 
   return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" aria-labelledby="splash-title">
+    <div className={`${styles.overlay} ${leaving ? styles.leaving : ''}`} role="dialog" aria-modal="true" aria-labelledby="splash-title">
+      {/* Aurora: decorative colour wash behind the text, in front of the 3D scene */}
+      <div className={styles.aurora} aria-hidden="true">
+        <span /><span /><span /><span />
+      </div>
       <header className={styles.header}>
         <div className={styles.brand}>
           <DeltaVLogo height={96} />
@@ -56,7 +81,7 @@ export default function WelcomeOverlay() {
 
       <main className={styles.hero}>
         <p className={styles.eyebrow}>Solar system propulsion simulator</p>
-        <h1 id="splash-title" className={styles.title}>How long does it take to get there?</h1>
+        <h1 id="splash-title" className={styles.title}>Chart a course across the solar system.</h1>
         <p className={styles.lede}>
           Pick a planet, choose an engine (anything from a chemical rocket to a warp drive), then fly the trip on real
           orbital data.

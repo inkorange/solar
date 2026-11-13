@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 const SITE_URL = 'https://solar.chriswest.tech';
 const TITLE = 'Delta-V · Solar System Propulsion Simulator';
 const DESCRIPTION =
-  'How long does it take to get there? Pick a planet, choose an engine — chemical rocket to warp drive — and fly the trip on real orbital data.';
+  'Chart a course across the solar system. Pick a planet, choose an engine — chemical rocket to warp drive — and fly the trip on real orbital data.';
 
 // Icons, Open Graph and Twitter images come from Next file conventions in /app:
 // favicon.ico, icon.png, apple-icon.png, opengraph-image.jpg, twitter-image.jpg (+ manifest.ts).
