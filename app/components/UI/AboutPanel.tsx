@@ -164,9 +164,6 @@ export default function AboutPanel() {
           </section>
 
           <footer className={styles.credits}>
-            <p>
-              Built by <a href="https://chriswest.tech" target="_blank" rel="noreferrer">Chris West</a>
-            </p>
             <InkOrangeCredit />
           </footer>
         </div>

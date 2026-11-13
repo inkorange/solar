@@ -242,11 +242,7 @@
 .credits {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  justify-content: flex-start;
   padding-top: 20px;
   border-top: 1px solid $line;
-  p { margin: 0; font-size: 14px; color: $ink-muted; }
-  a { color: $ink; }
 }
