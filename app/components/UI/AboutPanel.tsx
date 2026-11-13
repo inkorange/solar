@@ -15,6 +15,7 @@ import {
   IconLayers,
   IconSearch,
   IconEyeOff,
+  IconInfo,
 } from './icons';
 import styles from './AboutPanel.module.scss';
 
@@ -59,6 +60,7 @@ const CONTROLS: { icon: React.ReactNode; name: string; keys?: string; body: stri
   { icon: <IconLayers size={18} />, name: 'Layers', keys: 'O · L · F', body: 'Orbits, labels, FPS meter and km / miles.' },
   { icon: <IconSearch size={18} />, name: 'Search', keys: '/ or ⌘K', body: 'Find any planet, moon or dwarf planet.' },
   { icon: <IconEyeOff size={18} />, name: 'Hide interface', keys: 'H', body: 'Just the view. The eye button brings it back.' },
+  { icon: <IconInfo size={18} />, name: 'About & how to use', body: 'Reopen this guide: top-right on desktop, or in the Layers menu.' },
 ];
 
 export default function AboutPanel() {

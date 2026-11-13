@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore, CameraMode } from '@/app/store/useStore';
 import { useLayout } from '@/app/lib/useLayout';
-import { cameraPositionFor, ALL_BODIES } from '@/app/lib/focusBody';
+import { chooseView, cycleView } from '@/app/lib/camera';
 import {
   CAMERA_ICONS,
   IconPause,
@@ -58,35 +58,10 @@ function useSimDate() {
 
 function useCamera() {
   const cameraMode = useStore((s) => s.cameraMode);
-  const setCameraMode = useStore((s) => s.setCameraMode);
-
-  const choose = (mode: CameraMode) => {
-    const { selectedPlanet, focusedPlanetName, destination, simulationTime, scaleMode, setCameraTarget } =
-      useStore.getState();
-    // Re-choosing the current mode re-centres it (e.g. snap back to the ship).
-    if (mode === cameraMode) {
-      setCameraMode('free');
-      setTimeout(() => setCameraMode(mode), 0);
-      return;
-    }
-    if (mode === 'planet-focus') {
-      const body =
-        selectedPlanet ??
-        ALL_BODIES.find((b) => b.name === focusedPlanetName) ??
-        destination ??
-        ALL_BODIES.find((b) => b.name === 'Earth')!;
-      setCameraTarget(cameraPositionFor(body, simulationTime, scaleMode), body.name);
-    }
-    setCameraMode(mode);
-  };
-
-  const cycle = () => {
-    const i = CAMERA_MODES.findIndex((m) => m.mode === cameraMode);
-    choose(CAMERA_MODES[(i + 1) % CAMERA_MODES.length].mode);
-  };
-
+  const journeyStatus = useStore((s) => s.journeyStatus);
+  const shipOk = journeyStatus === 'traveling' || journeyStatus === 'arrived';
   const current = CAMERA_MODES.find((m) => m.mode === cameraMode) ?? CAMERA_MODES[0];
-  return { cameraMode, choose, cycle, current };
+  return { cameraMode, choose: chooseView, cycle: cycleView, current, shipOk };
 }
 
 /** Close a popover on outside click / Escape. */
@@ -238,21 +213,22 @@ function SpeedCycle({ tipSide = 'top' }: { tipSide?: 'top' | 'bottom' }) {
 }
 
 function CameraRadios() {
-  const { cameraMode, choose } = useCamera();
+  const { cameraMode, choose, shipOk } = useCamera();
   return (
     <div className={styles.segments} role="radiogroup" aria-label="Camera">
       {CAMERA_MODES.map(({ mode, label }) => {
         const Icon = CAMERA_ICONS[mode];
+        const off = mode === 'follow-spaceship' && !shipOk;
         return (
-          <Tip key={mode} label={label} keys="C">
+          <Tip key={mode} label={off ? 'Ship view · during a trip' : label} keys={off ? undefined : 'C'}>
           <button
-
             type="button"
             role="radio"
             aria-checked={cameraMode === mode}
-            aria-label={label}
+            aria-disabled={off || undefined}
+            aria-label={off ? `${label} (available during a trip)` : label}
             className={styles.iconBtn}
-            onClick={() => choose(mode)}
+            onClick={() => !off && choose(mode)}
           >
             <Icon />
           </button>
@@ -267,20 +243,22 @@ const SHORT_LABEL: Record<string, string> = { free: 'Free', 'follow-spaceship': 
 
 /** Portrait: always-visible, labelled view switch docked under the top bar (right edge). */
 function ViewSwitch() {
-  const { cameraMode, choose } = useCamera();
+  const { cameraMode, choose, shipOk } = useCamera();
   return (
     <div className={styles.viewSwitch} role="radiogroup" aria-label="View">
       {CAMERA_MODES.map(({ mode, label }) => {
         const Icon = CAMERA_ICONS[mode];
+        const off = mode === 'follow-spaceship' && !shipOk;
         return (
           <button
             key={mode}
             type="button"
             role="radio"
             aria-checked={cameraMode === mode}
-            aria-label={label}
+            aria-disabled={off || undefined}
+            aria-label={off ? `${label} (available during a trip)` : label}
             className={styles.viewBtn}
-            onClick={() => choose(mode)}
+            onClick={() => !off && choose(mode)}
           >
             <Icon size={18} />
             <span aria-hidden>{SHORT_LABEL[mode]}</span>

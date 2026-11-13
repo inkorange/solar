@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useStore } from '@/app/store/useStore';
+import { cycleView } from '@/app/lib/camera';
 
 /**
  * Keyboard shortcuts handler
@@ -74,15 +75,8 @@ export default function KeyboardHandler() {
 
         // C: Cycle camera modes
         case 'c':
-          const modes = ['free', 'follow-spaceship', 'planet-focus'] as const;
-          const currentIndex = modes.indexOf(cameraMode as any);
-          // If current mode is not in the cycleable modes (e.g., destination-preview), start from free
-          if (currentIndex === -1) {
-            setCameraMode('free');
-          } else {
-            const nextIndex = (currentIndex + 1) % modes.length;
-            setCameraMode(modes[nextIndex]);
-          }
+          // Same behaviour as the view buttons (re-frames the camera, skips Ship with no trip).
+          cycleView();
           break;
 
         // O: Toggle orbits

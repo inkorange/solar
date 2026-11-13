@@ -90,6 +90,9 @@ interface AppState {
   layersOpen: boolean;
   suggestedPropulsion: PropulsionType | null;
   aboutOpen: boolean;
+  /** Bumped whenever the user explicitly picks a view, so the scene re-frames even if the mode is unchanged. */
+  cameraRequest: number;
+  requestCamera: (mode: CameraMode) => void;
   setAboutOpen: (open: boolean) => void;
   setPickerOpen: (open: boolean) => void;
   setLayersOpen: (open: boolean) => void;
@@ -319,6 +322,8 @@ export const useStore = create<AppState>((set) => ({
   layersOpen: false,
   suggestedPropulsion: null,
   aboutOpen: false,
+  cameraRequest: 0,
+  requestCamera: (mode) => set((s) => ({ cameraMode: mode, cameraRequest: s.cameraRequest + 1 })),
   setAboutOpen: (open) => set(open ? { aboutOpen: true, pickerOpen: false, layersOpen: false } : { aboutOpen: false }),
   setPickerOpen: (open) => set(open ? { pickerOpen: true, layersOpen: false } : { pickerOpen: false }),
   setLayersOpen: (open) => set(open ? { layersOpen: true, pickerOpen: false } : { layersOpen: false }),

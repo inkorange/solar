@@ -106,6 +106,7 @@ function CameraController() {
     cameraOffsetRef.current = null;
   }, [cameraMode]);
 
+
   // Register camera update callback for ship to use
   useEffect(() => {
     if (cameraMode === 'follow-spaceship') {
@@ -140,6 +141,25 @@ function CameraController() {
     startLookAt: Vector3;
     targetLookAt: Vector3;
   } | null>(null);
+
+  // An explicit view pick (buttons / C key) always re-frames, even if the mode didn't change.
+  // Free view flies back out to the whole-system overview.
+  const cameraRequest = useStore((s) => s.cameraRequest);
+  useEffect(() => {
+    if (!cameraRequest || !controlsRef.current) return;
+    cameraOffsetRef.current = null;
+    lastTargetRef.current = '';
+    if (useStore.getState().cameraMode === 'free') {
+      animationRef.current = {
+        active: true,
+        startTime: Date.now(),
+        startPos: camera.position.clone(),
+        targetPos: new Vector3(0, 50, 100), // same as the initial camera
+        startLookAt: controlsRef.current.target.clone(),
+        targetLookAt: new Vector3(0, 0, 0),
+      };
+    }
+  }, [cameraRequest, camera]);
 
   // Initialize animation when target changes or when entering ship follow mode
   useEffect(() => {
