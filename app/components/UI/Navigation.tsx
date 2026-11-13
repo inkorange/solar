@@ -4,7 +4,8 @@ import { PLANETS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import { useLayout } from '@/app/lib/useLayout';
 import { useFocusBody } from '@/app/lib/useFocusBody';
-import { bodyColor, bodyDotSize } from '@/app/lib/focusBody';
+import { bodyDotSize } from '@/app/lib/focusBody';
+import PlanetGlyph from './PlanetGlyph';
 import { IconSearch, IconMore, LogoMark } from './icons';
 import DestinationPicker from './DestinationPicker';
 import styles from './Navigation.module.scss';
@@ -53,7 +54,7 @@ export default function Navigation() {
           )}
           <span className={styles.divider} aria-hidden />
           {RAIL_BODIES.map((body) => {
-            const size = bodyDotSize(body, layout === 'landscape' ? 15 : 17, layout === 'landscape' ? 7 : 8);
+            const size = bodyDotSize(body, layout === 'landscape' ? 22 : 26, layout === 'landscape' ? 11 : 13);
             return (
               <button
                 key={body.name}
@@ -64,10 +65,7 @@ export default function Navigation() {
                 data-tip={body.name}
                 onClick={() => focusBody(body)}
               >
-                <span
-                  className={styles.dot}
-                  style={{ width: size, height: size, background: bodyColor(body.name) }}
-                />
+                <PlanetGlyph name={body.name} size={size} spin={selectedPlanet?.name === body.name} />
               </button>
             );
           })}

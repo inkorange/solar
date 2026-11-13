@@ -99,7 +99,7 @@
   @include reset-button;
   @include focus-ring;
   width: 44px;
-  height: 40px;
+  height: 44px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -111,12 +111,5 @@
     box-shadow: inset 2px 0 0 $accent;
   }
 
-  @media #{$landscape} { height: 32px; }
-}
-
-.dot {
-  display: block;
-  border-radius: 50%;
-  transition: transform 0.15s ease;
-  .railPlanet:hover & { transform: scale(1.15); }
+  @media #{$landscape} { height: 34px; }
 }

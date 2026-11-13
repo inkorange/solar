@@ -5,7 +5,8 @@ import type { PlanetData } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import type { HudLayout } from '@/app/lib/useLayout';
 import { useFocusBody } from '@/app/lib/useFocusBody';
-import { ALL_BODIES, bodyColor, bodyDotSize } from '@/app/lib/focusBody';
+import { ALL_BODIES, bodyDotSize } from '@/app/lib/focusBody';
+import PlanetGlyph from './PlanetGlyph';
 import { IconSearch, IconClose } from './icons';
 import styles from './DestinationPicker.module.scss';
 
@@ -84,14 +85,13 @@ export default function DestinationPicker({ layout }: { layout: HudLayout }) {
                       aria-current={selectedPlanet?.name === b.name ? 'true' : undefined}
                       onClick={() => focusBody(b)}
                     >
-                      <span
-                        className={styles.dot}
-                        style={{
-                          width: bodyDotSize(b, 20, 9),
-                          height: bodyDotSize(b, 20, 9),
-                          background: bodyColor(b.name),
-                        }}
-                      />
+                      <span className={styles.glyphCell}>
+                        <PlanetGlyph
+                          name={b.name}
+                          size={g.title === 'Planets' && isSheet ? bodyDotSize(b, 32, 16) : bodyDotSize(b, 24, 12)}
+                          spin={selectedPlanet?.name === b.name}
+                        />
+                      </span>
                       <span className={styles.name}>{b.name}</span>
                       <span className={styles.meta}>
                         {b.type === 'Natural Satellite' ? `of ${b.parentPlanet ?? 'Earth'}` : b.type}

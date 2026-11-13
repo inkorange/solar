@@ -152,7 +152,8 @@
   &[aria-current='true'] { background: $fill-active; }
 }
 
-.dot { flex: none; border-radius: 50%; display: block; }
+.glyphCell { flex: none; width: 50px; display: flex; align-items: center; justify-content: center; margin: 0 -6px 0 -8px; }
+.grid .glyphCell { height: 36px; width: auto; margin: 0; }
 .name { flex: 1; font-size: 14px; color: $ink; }
 .meta { font-size: 12px; color: $ink-muted; }
 
