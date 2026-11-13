@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import GoogleTagManager from "./components/GoogleAnalytics";
@@ -13,65 +13,47 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = 'https://solar.chriswest.tech';
+const TITLE = 'Delta-V · Solar System Propulsion Simulator';
+const DESCRIPTION =
+  'How long does it take to get there? Pick a planet, choose an engine — chemical rocket to warp drive — and fly the trip on real orbital data.';
+
+// Icons, Open Graph and Twitter images come from Next file conventions in /app:
+// favicon.ico, icon.png, apple-icon.png, opengraph-image.jpg, twitter-image.jpg (+ manifest.ts).
 export const metadata: Metadata = {
-  title: "Celestial Vehicle Propulsion Simulator",
-  description: "Interactive 3D visualization exploring space travel through our solar system with different propulsion methods",
-  keywords: ["space simulation", "solar system", "3D visualization", "propulsion", "astronomy", "education"],
-  authors: [{ name: "Your Name" }],
-  creator: "Your Name",
-  publisher: "Your Name",
-  metadataBase: new URL('https://yourdomain.com'), // Replace with your actual domain
-
-  // Favicon - Next.js automatically serves favicon.ico from /app directory
-  icons: {
-    icon: '/favicon.jpg',
-    apple: '/favicon.jpg',
-  },
-
-  // Open Graph metadata for social sharing
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: 'Delta-V',
+  keywords: ['space simulation', 'solar system', '3D visualization', 'propulsion', 'delta-v', 'astronomy', 'education'],
+  authors: [{ name: 'Chris West', url: 'https://chriswest.tech' }],
+  creator: 'Chris West',
+  publisher: 'inkOrange Studios',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://yourdomain.com', // Replace with your actual domain
-    siteName: 'Celestial Vehicle Propulsion Simulator',
-    title: 'Celestial Vehicle Propulsion Simulator',
-    description: 'Interactive 3D visualization exploring space travel through our solar system with different propulsion methods',
-    images: [
-      {
-        url: '/favicon.jpg', // You may want to create a larger OG image (1200x630px recommended)
-        width: 1200,
-        height: 630,
-        alt: 'Celestial Vehicle Propulsion Simulator',
-      },
-    ],
+    url: SITE_URL,
+    siteName: 'Delta-V',
+    title: TITLE,
+    description: DESCRIPTION,
   },
-
-  // Twitter Card metadata
   twitter: {
     card: 'summary_large_image',
-    title: 'Celestial Vehicle Propulsion Simulator',
-    description: 'Interactive 3D visualization exploring space travel through our solar system with different propulsion methods',
-    images: ['/favicon.jpg'], // You may want to create a larger Twitter image (1200x675px recommended)
-    creator: '@yourusername', // Replace with your Twitter handle
+    title: TITLE,
+    description: DESCRIPTION,
   },
-
-  // Additional SEO
+  appleWebApp: { title: 'Delta-V', statusBarStyle: 'black-translucent' },
   robots: {
     index: true,
     follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
+    googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 },
   },
+};
 
-  // Verification (add if needed)
-  // verification: {
-  //   google: 'your-google-verification-code',
-  // },
+export const viewport: Viewport = {
+  themeColor: '#04060a',
+  colorScheme: 'dark',
+  viewportFit: 'cover', // lets the HUD use safe-area insets on notched phones
 };
 
 export default function RootLayout({

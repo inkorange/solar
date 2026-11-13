@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useStore } from '@/app/store/useStore';
 import {
   PROPULSION_SYSTEMS,
@@ -12,6 +12,9 @@ import {
 import { calculateInterceptCourse } from '@/app/lib/orbital-mechanics';
 import { SCALE_FACTORS, PLANETS, PlanetData } from '@/app/data/planets';
 import Image from 'next/image';
+import { useLayout } from '@/app/lib/useLayout';
+import PlanetGlyph from './PlanetGlyph';
+import { IconClose, IconArrowRight } from './icons';
 import styles from './PropulsionSelector.module.scss';
 
 export default function PropulsionSelector() {
@@ -28,7 +31,23 @@ export default function PropulsionSelector() {
     setOrigin,
   } = useStore();
 
+  const layout = useLayout();
   const [selected, setSelected] = useState<PropulsionType | null>(null);
+  const [scrollToSelected, setScrollToSelected] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Splash "Fly the Hail Mary" pre-selects a drive.
+  const suggestedPropulsion = useStore((s) => s.suggestedPropulsion);
+  const setSuggestedPropulsion = useStore((s) => s.setSuggestedPropulsion);
+  useEffect(() => {
+    if (journeyStatus === 'selecting-propulsion' && suggestedPropulsion) {
+      // Syncing a one-shot hint from the global store into local selection state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelected(suggestedPropulsion);
+      setSuggestedPropulsion(null);
+      setScrollToSelected(true);
+    }
+  }, [journeyStatus, suggestedPropulsion, setSuggestedPropulsion]);
   const [expandedCards, setExpandedCards] = useState<Set<PropulsionType>>(new Set());
   const [selectedOrigin, setSelectedOrigin] = useState<PlanetData | null>(
     PLANETS.find(p => p.name === 'Earth') || origin
@@ -59,6 +78,16 @@ export default function PropulsionSelector() {
 
     return courses;
   }, [selectedOrigin, destination, simulationTime, scaleFactor.DISTANCE, journeyStatus, origin, useFlipAndBurn]);
+
+  // Bring a pre-picked engine (Hail Mary → Astrophage, in the last group) into view once rows exist.
+  useEffect(() => {
+    if (!scrollToSelected || !selected) return;
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-engine="${selected}"]`);
+    if (!row) return; // rows not rendered yet — the effect re-runs when interceptCourses fills in
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScrollToSelected(false);
+  }, [scrollToSelected, selected, interceptCourses]);
 
   // If not in propulsion selection mode or missing data, render nothing (hooks already executed above)
   if (journeyStatus !== 'selecting-propulsion' || !destination || !origin) {
@@ -104,189 +133,194 @@ export default function PropulsionSelector() {
     cancelJourney();
   };
 
+  // Group engines by category, keeping the data's order inside each group.
+  const CATEGORIES = ['Current Technology', 'Advanced Technology', 'Theoretical'] as const;
+  const rows = PROPULSION_SYSTEMS.map((propulsion) => {
+    const course = interceptCourses.get(propulsion.id);
+    if (!course) return null;
+    return { propulsion, seconds: calculateTravelTime(course.distance, propulsion, useFlipAndBurn) };
+  }).filter((r): r is { propulsion: (typeof PROPULSION_SYSTEMS)[number]; seconds: number } => !!r);
+
+  // Log-scale "how long" bar: shortest trip ≈ 4%, longest = 100%.
+  const logs = rows.map((r) => Math.log10(Math.max(r.seconds, 1)));
+  const minLog = Math.min(...logs);
+  const maxLog = Math.max(...logs);
+  const barWidth = (sec: number) =>
+    maxLog === minLog ? 100 : 4 + (96 * (Math.log10(Math.max(sec, 1)) - minLog)) / (maxLog - minLog);
+
+  const fmtSpeed = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k km/s` : `${v} km/s`);
+  const fmtAccel = (v: number) => (v >= 1 ? `${v} m/s²` : `${(v * 1000).toFixed(2)} mm/s²`);
+  const selectedRow = rows.find((r) => r.propulsion.id === selected);
+  const isSheet = layout === 'portrait';
+
   return (
     <>
-      <div className={styles.overlay} onClick={handleCancel} />
-      <div className={styles.selector}>
-        <div className={styles.dragHandle} />
-        <div className={styles.scrollContent}>
-          <div className={styles.header}>
-            <h2>Choose Your Propulsion System</h2>
-            <p className={styles.subtitle}>
-              Select your starting point and propulsion method
-            </p>
+      <div className={styles.overlay} onClick={handleCancel} aria-hidden />
+      <div
+        className={`${styles.selector} ${styles[layout]}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="propulsion-title"
+        onKeyDown={(e) => e.key === 'Escape' && handleCancel()}
+      >
+        {isSheet && <div className={styles.dragHandle} aria-hidden><span /></div>}
+
+        <header className={styles.header}>
+          <div className={styles.headTop}>
+            <div>
+              <p className={styles.eyebrow}>Plan trip</p>
+              <h2 id="propulsion-title">Choose an engine</h2>
+            </div>
+            <button type="button" className={styles.close} aria-label="Cancel trip" onClick={handleCancel}>
+              <IconClose size={16} />
+            </button>
           </div>
 
-          {/* Origin planet selector */}
-          <div className={styles.originSelector}>
-            <label className={styles.originLabel}>Starting from:</label>
-            <select
-              className={styles.originSelect}
-              value={selectedOrigin?.name || ''}
-              onChange={(e) => {
-                const planet = PLANETS.find(p => p.name === e.target.value);
-                if (planet) {
-                  setSelectedOrigin(planet);
-                }
-              }}
-            >
-              {PLANETS.map((planet) => (
-                <option key={planet.name} value={planet.name}>
-                  {planet.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className={styles.route}>
+            <label className={styles.origin}>
+              <span className={styles.srOnly}>Starting from</span>
+              {selectedOrigin && <PlanetGlyph name={selectedOrigin.name} size={22} />}
+              <select
+                value={selectedOrigin?.name || ''}
+                onChange={(e) => {
+                  const planet = PLANETS.find((p) => p.name === e.target.value);
+                  if (planet) setSelectedOrigin(planet);
+                }}
+              >
+                {PLANETS.map((planet) => (
+                  <option key={planet.name} value={planet.name}>
+                    {planet.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className={styles.arrow} aria-hidden>
+              <IconArrowRight size={18} />
+            </span>
+            <div className={styles.dest}>
+              <PlanetGlyph name={destination.name} size={22} />
+              <span>{destination.name}</span>
+            </div>
 
-          {/* Flip and Burn toggle */}
-          <div className={styles.flipAndBurnToggle}>
-            <label className={styles.toggleLabel}>
+            <label className={styles.flip} title="Flip halfway and burn backwards to stop at the destination. Light Speed and Warp Drive can't.">
               <input
                 type="checkbox"
+                role="switch"
                 checked={useFlipAndBurn}
                 onChange={(e) => setUseFlipAndBurn(e.target.checked)}
-                className={styles.checkbox}
               />
-              <span className={styles.toggleText}>
-                <strong>Flip and Burn</strong> - Decelerate to arrive at destination (recommended)
+              <span>
+                Flip &amp; burn <em>{useFlipAndBurn ? 'stop at target' : 'fly past'}</em>
               </span>
             </label>
-            <p className={styles.toggleDescription}>
-              When enabled, the ship will flip halfway through the journey and fire engines backward to decelerate,
-              allowing it to stop at the destination. When disabled, the ship will coast at maximum velocity and
-              fly past the target. Not available for Light Speed and Warp Drive.
-            </p>
           </div>
+        </header>
 
-          <div className={styles.routeInfo}>
-            <div className={styles.routeText}>
-              <span>{selectedOrigin?.name}</span> → <span>{destination.name}</span>
-            </div>
-            <div className={styles.distance}>
-              Intercept course calculated
-            </div>
-          </div>
+        <div className={styles.scrollContent} ref={listRef}>
+          {CATEGORIES.map((cat) => {
+            const group = rows.filter((r) => r.propulsion.category === cat);
+            if (!group.length) return null;
+            return (
+              <section key={cat} className={styles.group} aria-label={cat}>
+                <h3 className={styles.groupTitle}>{cat}</h3>
+                <ul className={styles.list} role="radiogroup" aria-label={cat}>
+                  {group.map(({ propulsion, seconds }) => {
+                    const isSelected = selected === propulsion.id;
+                    const isExpanded = expandedCards.has(propulsion.id);
+                    const featured = propulsion.id === 'astrophage-drive';
+                    return (
+                      <li
+                        key={propulsion.id}
+                        data-engine={propulsion.id}
+                        className={`${styles.row} ${isSelected ? styles.selected : ''}`}
+                      >
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          className={styles.rowMain}
+                          onClick={() => handleSelect(propulsion.id)}
+                        >
+                          <span className={styles.radio} aria-hidden />
+                          {featured && (
+                            <span className={styles.thumb} aria-hidden>
+                              <Image src="/hail-mary-banner.jpg" alt="" fill sizes="56px" style={{ objectFit: 'cover' }} />
+                            </span>
+                          )}
+                          <span className={styles.nameCol}>
+                            <span className={styles.name}>
+                              {propulsion.name}
+                              {featured && <span className={styles.badge}>New</span>}
+                            </span>
+                            <span className={styles.desc}>{propulsion.description}</span>
+                            <span className={styles.specs}>
+                              <span>{fmtSpeed(propulsion.maxSpeed)}</span>
+                              <span>{fmtAccel(propulsion.acceleration)}</span>
+                            </span>
+                          </span>
+                          <span className={styles.timeCol}>
+                            <span className={styles.time}>{formatDuration(seconds)}</span>
+                            <span className={styles.bar} aria-hidden>
+                              <span style={{ width: `${barWidth(seconds)}%` }} />
+                            </span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.more}
+                          aria-expanded={isExpanded}
+                          aria-label={`${isExpanded ? 'Hide' : 'Show'} details for ${propulsion.name}`}
+                          onClick={() => handleToggleExpand(propulsion.id)}
+                        >
+                          {isExpanded ? 'Less' : 'Details'}
+                        </button>
 
-          <div className={styles.propulsionGrid}>
-            {PROPULSION_SYSTEMS.map((propulsion) => {
-              const course = interceptCourses.get(propulsion.id);
-              if (!course) return null;
-
-              const travelTime = calculateTravelTime(course.distance, propulsion, useFlipAndBurn);
-              const isSelected = selected === propulsion.id;
-              const isExpanded = expandedCards.has(propulsion.id);
-
-              return (
-                <div
-                  key={propulsion.id}
-                  className={`${styles.propulsionCard} ${isSelected ? styles.selected : ''}`}
-                  onClick={() => handleSelect(propulsion.id)}
-                >
-                  {propulsion.id === 'astrophage-drive' && (
-                    <div className={styles.cardBanner}>
-                      <Image
-                        src="/hail-mary-banner.jpg"
-                        alt="Project Hail Mary"
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                      <div className={styles.bannerOverlay}>
-                        <span className={styles.bannerBadge}>Featured</span>
-                      </div>
-                    </div>
-                  )}
-                  <div className={styles.cardHeader}>
-                    <div className={styles.left}>
-                      <div className={styles.icon}>{propulsion.icon}</div>
-                      <div className={styles.info}>
-                        <h3>{propulsion.displayName}</h3>
-                        <div className={styles.category}>{propulsion.category}</div>
-                      </div>
-                    </div>
-                    <div className={styles.travelTime}>
-                      <div className={styles.label}>Travel Time</div>
-                      <div className={styles.time}>{formatDuration(travelTime)}</div>
-                    </div>
-                  </div>
-
-                  <div className={styles.description}>{propulsion.description}</div>
-
-                  <div className={styles.stats}>
-                    <div className={styles.stat}>
-                      <div className={styles.statLabel}>Max Speed</div>
-                      <div className={styles.statValue}>
-                        {propulsion.maxSpeed >= 1000
-                          ? `${(propulsion.maxSpeed / 1000).toFixed(0)}k km/s`
-                          : `${propulsion.maxSpeed} km/s`}
-                      </div>
-                    </div>
-                    <div className={styles.stat}>
-                      <div className={styles.statLabel}>Acceleration</div>
-                      <div className={styles.statValue}>
-                        {propulsion.acceleration >= 1
-                          ? `${propulsion.acceleration} m/s²`
-                          : `${(propulsion.acceleration * 1000).toFixed(2)} mm/s²`}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    className={styles.expandButton}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleExpand(propulsion.id);
-                    }}
-                  >
-                    {isExpanded ? '▼ Show Less' : '▶ Learn More'}
-                  </button>
-
-                  {isExpanded && (
-                    <div className={styles.expandedContent}>
-                      <h4>Technical Details</h4>
-                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginBottom: '12px' }}>
-                        {propulsion.technicalDetails}
-                      </p>
-
-                      <h4>Real-World Examples</h4>
-                      <ul>
-                        {propulsion.realWorldExamples.map((example, i) => (
-                          <li key={i}>{example}</li>
-                        ))}
-                      </ul>
-
-                      <h4>Advantages</h4>
-                      <ul>
-                        {propulsion.advantages.slice(0, 2).map((adv, i) => (
-                          <li key={i}>{adv}</li>
-                        ))}
-                      </ul>
-
-                      <h4>Limitations</h4>
-                      <ul>
-                        {propulsion.limitations.slice(0, 2).map((lim, i) => (
-                          <li key={i}>{lim}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                        {isExpanded && (
+                          <div className={styles.details}>
+                            <p>{propulsion.technicalDetails}</p>
+                            <div className={styles.detailCols}>
+                              <div>
+                                <h4>Real-world examples</h4>
+                                <ul>{propulsion.realWorldExamples.map((x, i) => <li key={i}>{x}</li>)}</ul>
+                              </div>
+                              <div>
+                                <h4>Advantages</h4>
+                                <ul>{propulsion.advantages.slice(0, 2).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                              </div>
+                              <div>
+                                <h4>Limitations</h4>
+                                <ul>{propulsion.limitations.slice(0, 2).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </div>
 
-        <div className={styles.stickyFooter}>
-          <button className={styles.cancelButton} onClick={handleCancel}>
-            Cancel Journey
+        <footer className={styles.footer}>
+          <div className={styles.summary} aria-live="polite">
+            {selectedRow ? (
+              <>
+                <span className={styles.summaryName}>{selectedRow.propulsion.name}</span>
+                <span className={styles.summaryTime}>{formatDuration(selectedRow.seconds)}</span>
+              </>
+            ) : (
+              <span className={styles.summaryHint}>Pick an engine to see the trip</span>
+            )}
+          </div>
+          <button type="button" className={styles.cancelButton} onClick={handleCancel}>
+            Cancel
           </button>
-          <button
-            className={styles.confirmButton}
-            onClick={handleConfirm}
-            disabled={!selected}
-          >
-            {selected ? 'Begin Journey' : 'Select a Propulsion System'}
+          <button type="button" className={styles.confirmButton} onClick={handleConfirm} disabled={!selected}>
+            Launch <IconArrowRight />
           </button>
-        </div>
+        </footer>
       </div>
     </>
   );

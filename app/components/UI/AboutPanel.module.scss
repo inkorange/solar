@@ -1,0 +1,247 @@
+@use './hud' as *;
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1190;
+  background: rgba(2, 4, 8, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fade 0.2s ease both;
+}
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
+
+.panel {
+  @include glass($glass-strong);
+  position: fixed;
+  z-index: 1200; // above the splash
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(880px, calc(100vw - 48px));
+  height: min(860px, calc(100vh - 48px));
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  color: $ink;
+  overflow: hidden;
+  animation: rise 0.22s ease both;
+
+  @media #{$portrait}, #{$landscape} {
+    inset: 0;
+    transform: none;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    border: 0;
+    animation: fade 0.2s ease both;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 16px 28px;
+  border-bottom: 1px solid $line;
+  img { height: 40px; width: auto; }
+  @media #{$portrait} { padding: 10px 10px 10px 16px; img { height: 34px; } }
+}
+
+.close { @include icon-button(44px); @include focus-ring; }
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 28px 36px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  @media #{$portrait} { padding: 20px 16px max(28px, env(safe-area-inset-bottom)); gap: 32px; }
+  @media #{$landscape} { padding: 20px 24px 28px; }
+}
+
+.intro {
+  max-width: 640px;
+  h2 { margin: 0 0 10px; font-size: clamp(26px, 3.4vw, 34px); line-height: 1.1; letter-spacing: -0.025em; font-weight: 600; }
+  p { margin: 0; font-size: 16px; line-height: 1.6; color: $ink-2; }
+}
+
+.sectionTitle {
+  @include eyebrow;
+  margin: 0 0 16px;
+  font-weight: 500;
+}
+
+.para { margin: 0; font-size: 15px; line-height: 1.6; color: $ink-2; }
+
+/* ---- steps ---- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  @media (max-width: 720px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid $line;
+  align-items: start;
+  @media #{$portrait} { grid-template-columns: 96px minmax(0, 1fr); gap: 12px; padding: 12px; }
+}
+
+.shot {
+  margin: 0;
+  height: 176px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid $line;
+  img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  @media #{$portrait} { height: 132px; }
+}
+
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  h4 { margin: 0; font-size: 17px; font-weight: 600; }
+  p { margin: 0; font-size: 14px; line-height: 1.55; color: $ink-2; }
+}
+
+.stepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: $accent;
+  color: $on-accent;
+  font-family: $mono;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---- controls ---- */
+
+.pillShot {
+  margin: 0 0 18px;
+  img { width: 100%; max-width: 760px; height: auto; display: block; border-radius: 999px; }
+  figcaption { margin-top: 8px; font-size: 12px; color: $ink-muted; }
+}
+
+.controls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  @media (max-width: 520px) { grid-template-columns: minmax(0, 1fr); }
+
+  li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid $line;
+  }
+}
+
+.ctrlIcon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: $fill-active;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $ink;
+}
+
+.speedGlyph { font-family: $mono; font-size: 12px; }
+
+.ctrlText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.ctrlName {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ctrlBody { font-size: 13px; line-height: 1.45; color: $ink-muted; }
+
+.panel kbd {
+  font-family: $mono;
+  font-size: 11px;
+  font-weight: 500;
+  color: $ink-2;
+  padding: 1px 6px;
+  border: 1px solid $line-strong;
+  border-radius: 5px;
+}
+
+/* ---- phone ---- */
+
+.phoneRow {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  @media #{$portrait} { grid-template-columns: 120px minmax(0, 1fr); gap: 16px; }
+}
+
+.phoneShot {
+  margin: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid $line-strong;
+  img { width: 100%; height: auto; display: block; }
+}
+
+/* ---- keys (pointer devices only) ---- */
+
+.keysSection { @media (hover: none) { display: none; } }
+
+.keys {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 24px;
+  @media (max-width: 860px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  div { display: flex; align-items: center; gap: 12px; min-height: 32px; }
+  dt { width: 64px; flex: none; }
+  dd { margin: 0; font-size: 14px; color: $ink-2; }
+}
+
+/* ---- credits ---- */
+
+.credits {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 20px;
+  border-top: 1px solid $line;
+}

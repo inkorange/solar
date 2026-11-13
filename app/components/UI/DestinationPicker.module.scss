@@ -1,0 +1,160 @@
+@use './hud' as *;
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.picker {
+  @include glass($glass-strong);
+  position: fixed;
+  z-index: 120;
+  color: $ink;
+  display: flex;
+  flex-direction: column;
+  animation: pop 0.16s ease both;
+}
+
+@keyframes pop { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes up { from { transform: translateY(100%); } to { transform: none; } }
+
+// Desktop + landscape: panel beside the rail.
+.panel {
+  top: 84px;
+  left: 88px;
+  width: 320px;
+  max-height: calc(100vh - 200px);
+  border-radius: 16px;
+  overflow: hidden;
+
+  @media #{$landscape} {
+    top: max(12px, env(safe-area-inset-top));
+    left: calc(max(12px, env(safe-area-inset-left)) + 60px);
+    max-height: calc(100vh - 24px);
+    width: 300px;
+  }
+}
+
+// Portrait: bottom sheet.
+.sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: min(72vh, calc(100vh - 132px - env(safe-area-inset-top)));
+  border-radius: 22px 22px 0 0;
+  border-bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 119;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.grabber {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+  span { width: 40px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.28); }
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 8px 12px;
+  .sheet & { padding: 6px 12px 10px 16px; }
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: $fill;
+  border: 1px solid $line;
+  color: $ink-muted;
+  &:focus-within { border-color: $accent; }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: $ink;
+    font: inherit;
+    font-size: 16px; // ≥16px stops iOS zooming on focus
+    &::placeholder { color: $ink-muted; }
+    &::-webkit-search-cancel-button { display: none; }
+  }
+}
+
+.close { @include icon-button(44px); }
+
+.scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 8px 12px;
+  .sheet & { padding: 0 12px 16px; }
+}
+
+.group + .group { margin-top: 8px; }
+
+.groupTitle {
+  @include eyebrow;
+  margin: 8px 8px 6px;
+  font-weight: 500;
+}
+
+.list, .grid { list-style: none; margin: 0; padding: 0; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+
+  .item {
+    flex-direction: column;
+    justify-content: center;
+    height: 76px;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .meta { display: none; }
+  .name { font-size: 12px; flex: none; }
+}
+
+.item {
+  @include reset-button;
+  @include focus-ring;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  &:hover { background: $fill; }
+  &[aria-current='true'] { background: $fill-active; }
+}
+
+.glyphCell { flex: none; width: 50px; display: flex; align-items: center; justify-content: center; margin: 0 -6px 0 -8px; }
+.grid .glyphCell { height: 36px; width: auto; margin: 0; }
+.name { flex: 1; font-size: 14px; color: $ink; }
+.meta { font-size: 12px; color: $ink-muted; }
+
+.empty { padding: 12px; font-size: 14px; color: $ink-muted; }

@@ -1,268 +1,467 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore, CameraMode } from '@/app/store/useStore';
-import { SCALE_FACTORS } from '@/app/data/planets';
-import { calculateEllipticalOrbitPosition } from '@/app/lib/orbital-mechanics';
+import { useLayout } from '@/app/lib/useLayout';
+import { chooseView, cycleView } from '@/app/lib/camera';
+import {
+  CAMERA_ICONS,
+  IconPause,
+  IconPlay,
+  IconLayers,
+  IconSearch,
+  IconEyeOff,
+  IconInfo,
+  LogoMark,
+} from './icons';
+import Tip from './Tip';
 import styles from './Controls.module.scss';
 
-// Numeric values used for timeSpeed; labels below are the shortened display strings
-const SPEED_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: '1x' },
-  { value: 100, label: '100x' },
-  { value: 10000, label: '10kx' },
-  { value: 100000, label: '100kx' },
-  { value: 500000, label: '500kx' },
+const SPEEDS = [
+  { value: 1, label: '1×' },
+  { value: 100, label: '100×' },
+  { value: 10000, label: '10k×' },
+  { value: 100000, label: '100k×' },
+  { value: 500000, label: '500k×' },
 ];
 
-const CAMERA_MODES: { mode: CameraMode; label: string }[] = [
-  { mode: 'free', label: 'Free' },
-  { mode: 'follow-spaceship', label: 'Follow Ship' },
-  { mode: 'planet-focus', label: 'Planet' },
+const CAMERA_MODES: { mode: Exclude<CameraMode, 'destination-preview'>; label: string }[] = [
+  { mode: 'free', label: 'Free camera' },
+  { mode: 'follow-spaceship', label: 'Follow ship' },
+  { mode: 'planet-focus', label: 'Focus planet' },
 ];
 
-export default function Controls() {
-  const [isMobile, setIsMobile] = useState(false);
+export const SHORTCUTS: [string, string][] = [
+  ['Space', 'Play / pause'],
+  ['1 – 5', 'Time speed'],
+  ['C', 'Cycle camera'],
+  ['/', 'Search destinations'],
+  ['O', 'Orbits'],
+  ['L', 'Labels'],
+  ['F', 'FPS meter'],
+  ['H', 'Hide interface'],
+  ['Esc', 'Close panels'],
+];
 
-  const {
-    isPaused,
-    setIsPaused,
-    timeSpeed,
-    setTimeSpeed,
-    showOrbits,
-    toggleOrbits,
-    showLabels,
-    toggleLabels,
-    showFPS,
-    toggleFPS,
-    unitSystem,
-    setUnitSystem,
-    cameraMode,
-    setCameraMode,
-    selectedPlanet,
-    setCameraTarget,
-    simulationTime,
-    scaleMode,
-    showControls,
-    setShowControls,
-  } = useStore();
+const speedLabel = (v: number) => SPEEDS.find((s) => s.value === v)?.label ?? `${v}×`;
 
-  // Detect if mobile on mount
+/* ----------------------------------------------------------------------------
+ * Hooks shared by every layout
+ * ------------------------------------------------------------------------- */
+
+function useSimDate() {
+  const simulationTime = useStore((s) => s.simulationTime);
+  const [start] = useState(() => Date.now());
+  return new Date(start + simulationTime * 1000);
+}
+
+function useCamera() {
+  const cameraMode = useStore((s) => s.cameraMode);
+  const journeyStatus = useStore((s) => s.journeyStatus);
+  const shipOk = journeyStatus === 'traveling' || journeyStatus === 'arrived';
+  const current = CAMERA_MODES.find((m) => m.mode === cameraMode) ?? CAMERA_MODES[0];
+  return { cameraMode, choose: chooseView, cycle: cycleView, current, shipOk };
+}
+
+/** Close a popover on outside click / Escape. */
+function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      // On desktop, start visible; on mobile, start hidden
-      if (!mobile) {
-        setShowControls(true);
-      }
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
     };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, close, ref]);
+}
 
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+/* ----------------------------------------------------------------------------
+ * Pieces
+ * ------------------------------------------------------------------------- */
 
-  const handleCameraModeChange = (mode: CameraMode) => {
-    // If clicking the same mode (e.g., re-clicking "Follow Ship"), force a reset
-    // by briefly switching to 'free' mode and then back
-    if (mode === cameraMode) {
-      setCameraMode('free');
-      // Use setTimeout to ensure the mode change is processed
-      setTimeout(() => {
-        setCameraMode(mode);
-      }, 0);
-      return;
-    }
+function PlayPause({ size = 44, tipSide = 'top' }: { size?: number; tipSide?: 'top' | 'bottom' }) {
+  const isPaused = useStore((s) => s.isPaused);
+  const setIsPaused = useStore((s) => s.setIsPaused);
+  return (
+    <Tip label={isPaused ? 'Play' : 'Pause'} keys="Space" side={tipSide}>
+    <button
+      type="button"
+      className={styles.play}
+      style={{ width: size, height: size, flexBasis: size }}
+      aria-label={isPaused ? 'Play (Space)' : 'Pause (Space)'}
+      onClick={() => setIsPaused(!isPaused)}
+    >
+      {isPaused ? <IconPlay size={size < 40 ? 14 : 16} /> : <IconPause size={size < 40 ? 14 : 16} />}
+    </button>
+    </Tip>
+  );
+}
 
-    // If switching to planet-focus mode and there's a selected planet,
-    // recalculate and set the camera position (same logic as Navigation.tsx)
-    if (mode === 'planet-focus' && selectedPlanet) {
-      const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-      const position = calculateEllipticalOrbitPosition(
-        simulationTime,
-        selectedPlanet,
-        scaleFactor.DISTANCE
-      );
+function DateButton({ showTime, tipSide = 'top' }: { showTime: boolean; tipSide?: 'top' | 'bottom' }) {
+  const date = useSimDate();
+  const setSimulationTime = useStore((s) => s.setSimulationTime);
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const wrap = useRef<HTMLDivElement>(null);
+  useDismiss(open, () => setOpen(false), wrap);
 
-      // Calculate camera distance based on planet size
-      const planetRadius = (selectedPlanet.diameter / 12742) * scaleFactor.SIZE * 5;
-      const planetDiameter = planetRadius * 2;
+  const toInput = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-      const fov = 60;
-      const fovRadians = (fov * Math.PI) / 180;
-
-      const jupiterDiameter = (142984 / 12742) * scaleFactor.SIZE * 5 * 2;
-      const sizeRatio = Math.min(planetDiameter / jupiterDiameter, 1);
-      const distanceMultiplier = 1 + (39 * Math.pow(1 - sizeRatio, 1.5));
-      const baseDistance = planetDiameter / (0.3 * 2 * Math.tan(fovRadians / 2));
-      let cameraDistance = baseDistance / distanceMultiplier;
-
-      const visualRadius = selectedPlanet.hasRings && selectedPlanet.ringData
-        ? planetRadius * selectedPlanet.ringData.outerRadiusRatio
-        : planetRadius;
-      const minSafeDistance = visualRadius * 2;
-      cameraDistance = Math.max(cameraDistance, minSafeDistance);
-
-      const angle = Math.PI / 4;
-      const cameraPos: [number, number, number] = [
-        position.x + cameraDistance * Math.cos(angle),
-        cameraDistance * 0.3,
-        position.z + cameraDistance * Math.sin(angle),
-      ];
-
-      setCameraTarget(cameraPos, selectedPlanet.name);
-    }
-
-    setCameraMode(mode);
-  };
-
-  const handleMouseEnter = () => {
-    if (!isMobile) {
-      setShowControls(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (!isMobile) {
-      setShowControls(false);
-    }
-  };
-
-  const toggleVisibility = () => {
-    setShowControls(!showControls);
+  const apply = () => {
+    if (!value) return;
+    setSimulationTime((new Date(value).getTime() - Date.now()) / 1000);
+    setOpen(false);
   };
 
   return (
-    <div
-      className={`${styles.controlsWrapper} ${showControls ? styles.visible : styles.hidden}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* Toggle button (visible when hidden, especially on mobile) */}
-      {!showControls && (
-        <button
-          className={styles.toggleButton}
-          onClick={toggleVisibility}
-          aria-label="Show controls"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-        </button>
-      )}
-
-      {/* Main controls panel */}
-      <div className={styles.controls}>
-      {/* Play/Pause */}
-      <div className={styles.controlGroup}>
-        <button
-          className={`${styles.playPauseButton} ${isPaused ? styles.paused : ''}`}
-          onClick={() => setIsPaused(!isPaused)}
-          title={isPaused ? 'Play' : 'Pause'}
-        >
-          {isPaused ? '▶' : '⏸'}
-        </button>
-      </div>
-
-      <div className={styles.divider} />
-
-      {/* Time speed */}
-      <div className={styles.controlGroup}>
-        <label>Speed</label>
-        <div className={styles.speedButtons}>
-          {SPEED_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              className={timeSpeed === value ? styles.active : ''}
-              onClick={() => setTimeSpeed(value)}
-            >
-              {label}
+    <div className={styles.popWrap} ref={wrap}>
+      <Tip label="Change date" side={tipSide}>
+      <button
+        type="button"
+        className={styles.date}
+        aria-label="Change simulation date"
+        aria-expanded={open}
+        onClick={() => {
+          setValue(toInput(date));
+          setOpen(!open);
+        }}
+      >
+        <span>{date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+        {showTime && (
+          <span className={styles.time}>
+            {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+        )}
+      </button>
+      </Tip>
+      {open && (
+        <div className={`${styles.popover} ${styles.datePop}`} role="dialog" aria-label="Simulation date">
+          <label className={styles.popLabel}>
+            Jump to date
+            <input
+              type="date"
+              className={styles.dateInput}
+              value={value}
+              min="1900-01-01"
+              max="2100-12-31"
+              onChange={(e) => setValue(e.target.value)}
+            />
+          </label>
+          <div className={styles.popActions}>
+            <button type="button" className={styles.ghost} onClick={() => { setSimulationTime(0); setOpen(false); }}>
+              Now
             </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.divider} />
-
-      {/* Camera modes */}
-      <div className={styles.controlGroup}>
-        <label>Camera</label>
-        <div className={styles.toggleGroup}>
-          {CAMERA_MODES.map(({ mode, label }) => (
-            <button
-              key={mode}
-              className={cameraMode === mode ? styles.active : ''}
-              onClick={() => handleCameraModeChange(mode)}
-              title={`${label} camera mode`}
-            >
-              {label}
+            <button type="button" className={styles.primarySmall} onClick={apply}>
+              Go
             </button>
-          ))}
+          </div>
         </div>
-      </div>
-
-      <div className={styles.divider} />
-
-      {/* Display toggles */}
-      <div className={styles.controlGroup}>
-        <label>Display</label>
-        <div className={styles.toggleGroup}>
-          <button
-            className={showOrbits ? styles.active : ''}
-            onClick={toggleOrbits}
-          >
-            Orbits
-          </button>
-          <button
-            className={showLabels ? styles.active : ''}
-            onClick={toggleLabels}
-          >
-            Labels
-          </button>
-          <button
-            className={showFPS ? styles.active : ''}
-            onClick={toggleFPS}
-          >
-            FPS
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.divider} />
-
-      {/* Unit system */}
-      <div className={styles.controlGroup}>
-        <label>Units</label>
-        <div className={styles.toggleGroup}>
-          <button
-            className={unitSystem === 'metric' ? styles.active : ''}
-            onClick={() => setUnitSystem('metric')}
-          >
-            Metric
-          </button>
-          <button
-            className={unitSystem === 'imperial' ? styles.active : ''}
-            onClick={() => setUnitSystem('imperial')}
-          >
-            Imperial
-          </button>
-        </div>
-      </div>
-      </div>
-
-      {/* Close button for mobile when visible */}
-      {isMobile && showControls && (
-        <button
-          className={styles.closeButton}
-          onClick={toggleVisibility}
-          aria-label="Hide controls"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
       )}
     </div>
+  );
+}
+
+function SpeedSegments() {
+  const timeSpeed = useStore((s) => s.timeSpeed);
+  const setTimeSpeed = useStore((s) => s.setTimeSpeed);
+  return (
+    <div className={styles.segments} role="radiogroup" aria-label="Time speed">
+      {SPEEDS.map(({ value, label }, i) => (
+        <Tip key={value} label={`Speed ${label}`} keys={String(i + 1)}>
+        <button
+
+          type="button"
+          role="radio"
+          aria-checked={timeSpeed === value}
+          className={styles.segment}
+          onClick={() => setTimeSpeed(value)}
+        >
+          {label}
+        </button>
+        </Tip>
+      ))}
+    </div>
+  );
+}
+
+function SpeedCycle({ tipSide = 'top' }: { tipSide?: 'top' | 'bottom' }) {
+  const timeSpeed = useStore((s) => s.timeSpeed);
+  const setTimeSpeed = useStore((s) => s.setTimeSpeed);
+  const next = () => {
+    const i = SPEEDS.findIndex((s) => s.value === timeSpeed);
+    setTimeSpeed(SPEEDS[(i + 1) % SPEEDS.length].value);
+  };
+  return (
+    <Tip label="Faster time" keys="1–5" side={tipSide}>
+    <button
+      type="button"
+      className={styles.speedChip}
+      aria-label={`Time speed ${speedLabel(timeSpeed)}. Tap for faster`}
+      onClick={next}
+    >
+      {speedLabel(timeSpeed)}
+    </button>
+    </Tip>
+  );
+}
+
+function CameraRadios() {
+  const { cameraMode, choose, shipOk } = useCamera();
+  return (
+    <div className={styles.segments} role="radiogroup" aria-label="Camera">
+      {CAMERA_MODES.map(({ mode, label }) => {
+        const Icon = CAMERA_ICONS[mode];
+        const off = mode === 'follow-spaceship' && !shipOk;
+        return (
+          <Tip key={mode} label={off ? 'Ship view · during a trip' : label} keys={off ? undefined : 'C'}>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={cameraMode === mode}
+            aria-disabled={off || undefined}
+            aria-label={off ? `${label} (available during a trip)` : label}
+            className={styles.iconBtn}
+            onClick={() => !off && choose(mode)}
+          >
+            <Icon />
+          </button>
+          </Tip>
+        );
+      })}
+    </div>
+  );
+}
+
+const SHORT_LABEL: Record<string, string> = { free: 'Free', 'follow-spaceship': 'Ship', 'planet-focus': 'Planet' };
+
+/** Portrait: always-visible, labelled view switch docked under the top bar (right edge). */
+function ViewSwitch() {
+  const { cameraMode, choose, shipOk } = useCamera();
+  return (
+    <div className={styles.viewSwitch} role="radiogroup" aria-label="View">
+      {CAMERA_MODES.map(({ mode, label }) => {
+        const Icon = CAMERA_ICONS[mode];
+        const off = mode === 'follow-spaceship' && !shipOk;
+        return (
+          <button
+            key={mode}
+            type="button"
+            role="radio"
+            aria-checked={cameraMode === mode}
+            aria-disabled={off || undefined}
+            aria-label={off ? `${label} (available during a trip)` : label}
+            className={styles.viewBtn}
+            onClick={() => !off && choose(mode)}
+          >
+            <Icon size={18} />
+            <span aria-hidden>{SHORT_LABEL[mode]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function CameraCycle({ className }: { className?: string }) {
+  const { cycle, current } = useCamera();
+  const Icon = CAMERA_ICONS[current.mode];
+  return (
+    <Tip label={`View: ${current.label}`} keys="C">
+    <button
+      type="button"
+      className={className ?? styles.iconBtn}
+      aria-label={`Camera: ${current.label}. Tap to change`}
+      onClick={cycle}
+    >
+      <Icon />
+    </button>
+    </Tip>
+  );
+}
+
+function Toggle({ label, keyHint, on, onChange }: { label: string; keyHint?: string; on: boolean; onChange: () => void }) {
+  return (
+    <label className={styles.toggleRow}>
+      <span>{label}</span>
+      {keyHint && <kbd className={styles.kbd}>{keyHint}</kbd>}
+      <input type="checkbox" role="switch" checked={on} onChange={onChange} />
+    </label>
+  );
+}
+
+function LayersButton({ className, size, tipSide = 'top' }: { className?: string; size?: number; tipSide?: 'top' | 'bottom' }) {
+  const layersOpen = useStore((s) => s.layersOpen);
+  const setLayersOpen = useStore((s) => s.setLayersOpen);
+  const s = useStore(
+    useShallow((st) => ({
+      showOrbits: st.showOrbits,
+      showLabels: st.showLabels,
+      showFPS: st.showFPS,
+      unitSystem: st.unitSystem,
+      toggleOrbits: st.toggleOrbits,
+      toggleLabels: st.toggleLabels,
+      toggleFPS: st.toggleFPS,
+      setUnitSystem: st.setUnitSystem,
+      toggleAllUI: st.toggleAllUI,
+    }))
+  );
+  const wrap = useRef<HTMLDivElement>(null);
+  useDismiss(layersOpen, () => setLayersOpen(false), wrap);
+
+  return (
+    <div className={styles.popWrap} ref={wrap}>
+      <Tip label="Layers & display" side={tipSide} align={tipSide === 'bottom' ? 'end' : 'center'}>
+      <button
+        type="button"
+        className={className ?? styles.iconBtn}
+        style={size ? { width: size, height: size, flexBasis: size } : undefined}
+        aria-label="Layers and display options"
+        aria-expanded={layersOpen}
+        onClick={() => setLayersOpen(!layersOpen)}
+      >
+        <IconLayers />
+      </button>
+      </Tip>
+      {layersOpen && (
+        <div className={`${styles.popover} ${styles.layersPop}`} role="dialog" aria-label="Layers">
+          <Toggle label="Orbits" keyHint="O" on={s.showOrbits} onChange={s.toggleOrbits} />
+          <Toggle label="Labels" keyHint="L" on={s.showLabels} onChange={s.toggleLabels} />
+          <Toggle label="FPS meter" keyHint="F" on={s.showFPS} onChange={s.toggleFPS} />
+          <div className={styles.popDivider} />
+          <div className={styles.toggleRow}>
+            <span>Units</span>
+            <div className={styles.miniSeg} role="radiogroup" aria-label="Units">
+              <button type="button" role="radio" aria-checked={s.unitSystem === 'metric'} onClick={() => s.setUnitSystem('metric')}>
+                km
+              </button>
+              <button type="button" role="radio" aria-checked={s.unitSystem === 'imperial'} onClick={() => s.setUnitSystem('imperial')}>
+                mi
+              </button>
+            </div>
+          </div>
+          <div className={styles.popDivider} />
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => useStore.getState().setAboutOpen(true)}
+          >
+            <IconInfo size={16} /> About &amp; how to use
+          </button>
+          <button
+            type="button"
+            className={styles.menuItem}
+            onClick={() => {
+              setLayersOpen(false);
+              s.toggleAllUI();
+            }}
+          >
+            <IconEyeOff size={16} /> Hide interface <kbd className={styles.kbd}>H</kbd>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AboutButton() {
+  const setAboutOpen = useStore((st) => st.setAboutOpen);
+  return (
+    <Tip label="About & how to use" side="bottom" align="end">
+      <button type="button" className={styles.utilBtn} aria-label="About and how to use" onClick={() => setAboutOpen(true)}>
+        <IconInfo />
+      </button>
+    </Tip>
+  );
+}
+
+/* ----------------------------------------------------------------------------
+ * Layouts
+ * ------------------------------------------------------------------------- */
+
+export default function Controls() {
+  const layout = useLayout();
+  const selectedPlanet = useStore((s) => s.selectedPlanet);
+  const journeyStatus = useStore((s) => s.journeyStatus);
+  const pickerOpen = useStore((s) => s.pickerOpen);
+  const setPickerOpen = useStore((s) => s.setPickerOpen);
+  const toggleAllUI = useStore((s) => s.toggleAllUI);
+  const journeying = journeyStatus === 'traveling' || journeyStatus === 'arrived';
+
+  if (layout === 'portrait') {
+    const showBottomBar = !selectedPlanet && !pickerOpen && !journeying;
+    return (
+      <>
+        <div className={styles.topBar}>
+          {/* Brand only — the splash shows on first load and isn't reachable again. */}
+          <div className={styles.brandTile} role="img" aria-label="Delta-V">
+            <LogoMark size={28} />
+          </div>
+          <div className={styles.timeChip} role="group" aria-label="Time">
+            <PlayPause size={36} tipSide="bottom" />
+            <DateButton showTime={false} tipSide="bottom" />
+            <SpeedCycle tipSide="bottom" />
+          </div>
+          <LayersButton className={styles.utilBtn} tipSide="bottom" />
+        </div>
+
+        <ViewSwitch />
+
+        {showBottomBar && (
+          <div className={styles.bottomBar} role="toolbar" aria-label="Explore">
+            <button type="button" className={styles.destinations} onClick={() => setPickerOpen(true)}>
+              <IconSearch size={18} /> Destinations
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (layout === 'landscape') {
+    if (pickerOpen) return null;
+    return (
+      <div
+        className={`${styles.pill} ${styles.pillCompact} ${selectedPlanet || journeying ? styles.pillShifted : ''}`}
+        role="toolbar"
+        aria-label="Simulation controls"
+      >
+        <PlayPause />
+        <DateButton showTime={false} />
+        <SpeedCycle />
+        <span className={styles.sep} aria-hidden />
+        <CameraCycle />
+        <LayersButton />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className={styles.utilities}>
+        <AboutButton />
+        <Tip label="Hide interface" keys="H" side="bottom" align="end">
+          <button type="button" className={styles.utilBtn} aria-label="Hide interface (H)" onClick={toggleAllUI}>
+            <IconEyeOff />
+          </button>
+        </Tip>
+      </div>
+      <div className={styles.pill} role="toolbar" aria-label="Simulation controls">
+        <PlayPause />
+        <DateButton showTime />
+        <span className={styles.sep} aria-hidden />
+        <SpeedSegments />
+        <span className={styles.sep} aria-hidden />
+        <CameraRadios />
+        <span className={styles.sep} aria-hidden />
+        <LayersButton />
+      </div>
+    </>
   );
 }

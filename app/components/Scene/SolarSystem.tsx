@@ -25,6 +25,7 @@ import AsteroidBelt from './AsteroidBelt';
 import { PLANETS, DWARF_PLANETS, SCALE_FACTORS } from '@/app/data/planets';
 import { getMoonsForPlanet } from '@/app/data/moons';
 import { ASTEROIDS } from '@/app/data/asteroids';
+import { cameraPositionFor } from '@/app/lib/focusBody';
 import { useStore } from '@/app/store/useStore';
 import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
 import { getPropulsionById, calculateDistanceTraveled, calculateCurrentSpeed, getFlightPhase, calculateTravelTime } from '@/app/data/propulsion';
@@ -105,6 +106,7 @@ function CameraController() {
     cameraOffsetRef.current = null;
   }, [cameraMode]);
 
+
   // Register camera update callback for ship to use
   useEffect(() => {
     if (cameraMode === 'follow-spaceship') {
@@ -139,6 +141,25 @@ function CameraController() {
     startLookAt: Vector3;
     targetLookAt: Vector3;
   } | null>(null);
+
+  // An explicit view pick (buttons / C key) always re-frames, even if the mode didn't change.
+  // Free view flies back out to the whole-system overview.
+  const cameraRequest = useStore((s) => s.cameraRequest);
+  useEffect(() => {
+    if (!cameraRequest || !controlsRef.current) return;
+    cameraOffsetRef.current = null;
+    lastTargetRef.current = '';
+    if (useStore.getState().cameraMode === 'free') {
+      animationRef.current = {
+        active: true,
+        startTime: Date.now(),
+        startPos: camera.position.clone(),
+        targetPos: new Vector3(0, 50, 100), // same as the initial camera
+        startLookAt: controlsRef.current.target.clone(),
+        targetLookAt: new Vector3(0, 0, 0),
+      };
+    }
+  }, [cameraRequest, camera]);
 
   // Initialize animation when target changes or when entering ship follow mode
   useEffect(() => {
@@ -277,20 +298,18 @@ function CameraController() {
         const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
         const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
 
-        // Initialize offset on first frame with appropriate zoom based on planet size
+        // Entering planet view: fly in to the same close framing used when a planet is picked,
+        // instead of snapping to a distant default. The animation's completion sets the offset.
         if (!cameraOffsetRef.current) {
-          const planetSize = (planet.diameter / 12742) * scaleFactor.SIZE * 5;
-          // Increase distance multiplier to keep planets at ~50% viewport size
-          const cameraDistance = Math.max(planetSize * 50, 100); // At least 50x planet radius, minimum 100 units
-          const cameraHeight = Math.max(planetSize * 15, 40); // Higher camera for better view
-
-          // Position camera offset from planet
-          const initialCameraPos = planetPosVec.clone()
-            .add(new Vector3(cameraDistance, cameraHeight, cameraDistance));
-
-          camera.position.copy(initialCameraPos);
-          controlsRef.current.target.copy(planetPosVec);
-          cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
+          animationRef.current = {
+            active: true,
+            startTime: Date.now(),
+            startPos: camera.position.clone(),
+            targetPos: new Vector3(...cameraPositionFor(planet, simulationTime, scaleMode)),
+            startLookAt: controlsRef.current.target.clone(),
+            targetLookAt: planetPosVec,
+          };
+          return;
         }
 
         // Calculate how much the planet has moved
@@ -421,6 +440,8 @@ function LoadingTracker({ onLoadComplete }: { onLoadComplete: () => void }) {
 
 export default function SolarSystem() {
   const [isLoading, setIsLoading] = useState(true);
+  // The splash screen covers loading; only show the spinner text once it's dismissed.
+  const hideLoaderText = useStore((s) => s.showWelcome);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000000' }}>
@@ -445,6 +466,7 @@ export default function SolarSystem() {
               textAlign: 'center',
               color: 'white',
               fontFamily: 'var(--font-geist-sans)',
+              visibility: hideLoaderText ? 'hidden' : 'visible',
             }}
           >
             <div

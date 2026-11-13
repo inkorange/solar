@@ -1,7 +1,11 @@
 .fpsMonitor {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  bottom: 24px;
+  left: 20px;
+
+  @media (max-width: 640px) and (orientation: portrait) { bottom: auto; top: 64px; left: auto; right: 12px; }
+  @media (max-height: 500px) and (orientation: landscape) { bottom: auto; top: 12px; left: auto; right: 12px; }
+
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);

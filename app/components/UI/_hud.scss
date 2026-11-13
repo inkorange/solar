@@ -1,0 +1,104 @@
+// Shared HUD tokens + mixins for the redesigned interface.
+$ink: #eef1f6;
+$ink-2: #c9d0db;
+$ink-muted: #a9b2c0;
+$glass: rgba(8, 11, 18, 0.8);
+$glass-strong: rgba(10, 14, 21, 0.94);
+$line: rgba(255, 255, 255, 0.1);
+$line-strong: rgba(255, 255, 255, 0.16);
+$fill: rgba(255, 255, 255, 0.06);
+$fill-active: rgba(255, 255, 255, 0.13);
+$accent: var(--accent-primary);
+$on-accent: #04101f;
+$mono: var(--font-geist-mono), ui-monospace, monospace;
+
+$portrait: '(max-width: 640px) and (orientation: portrait)';
+$landscape: '(max-height: 500px) and (orientation: landscape)';
+
+@mixin glass($bg: $glass) {
+  background: $bg;
+  border: 1px solid $line;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@mixin reset-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+@mixin icon-button($size: 44px) {
+  @include reset-button;
+  width: $size;
+  height: $size;
+  flex: 0 0 $size;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $ink-2;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover { background: $fill; color: $ink; }
+  &[aria-pressed='true'], &[aria-checked='true'], &[aria-expanded='true'] { background: $fill-active; color: $ink; }
+}
+
+@mixin focus-ring {
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
+}
+
+@mixin eyebrow {
+  font-family: $mono;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $ink-muted;
+}
+
+// The two button styles used everywhere (matches the splash): pill-shaped primary + outlined secondary.
+@mixin btn-primary($height: 52px) {
+  @include primary-button;
+  height: $height;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-size: 16px;
+}
+
+@mixin btn-secondary($height: 52px) {
+  @include reset-button;
+  @include focus-ring;
+  height: $height;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: $fill;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: $ink;
+  font-size: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s ease;
+  &:hover { background: rgba(255, 255, 255, 0.1); }
+}
+
+@mixin primary-button {
+  @include reset-button;
+  background: $accent;
+  color: $on-accent;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: filter 0.15s ease, transform 0.15s ease;
+  &:hover { filter: brightness(1.08); }
+  &:active { transform: translateY(1px); }
+  @include focus-ring;
+}
