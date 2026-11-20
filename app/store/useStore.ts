@@ -213,10 +213,13 @@ export const useStore = create<AppState>((set) => ({
         position.z + cameraDistance * Math.sin(angle),
       ];
 
-      // Switch to planet-focus mode and target the destination planet
+      // Switch to planet-focus mode and target the destination planet.
+      // Drop back to real time so the scene settles on arrival instead of racing on at the
+      // time-lapse speed used for the trip.
       return {
         journeyStatus: 'arrived',
         journeyElapsedTime: 0,
+        timeSpeed: 1,
         cameraMode: 'planet-focus',
         focusedPlanetName: state.destination.name,
         selectedPlanet: state.destination,

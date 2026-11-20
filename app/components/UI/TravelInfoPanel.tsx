@@ -11,6 +11,7 @@ import {
   formatDuration,
   CONSTANTS,
 } from '@/app/data/propulsion';
+import { IconChevronDown, IconChevronUp } from './icons';
 import styles from './TravelInfoPanel.module.scss';
 
 export default function TravelInfoPanel() {
@@ -115,15 +116,22 @@ export default function TravelInfoPanel() {
     return null;
   }
 
-  const isMobileCollapsed = isMobileView && !isExpanded;
+  // The strip is the whole panel when collapsed. Phones keep it on top of the
+  // expanded detail too, as the handle for collapsing again.
+  const showStrip = isMobileView || !isExpanded;
+  // Desktop panel hangs from the top (opens downward); the phone sheet rises from the bottom.
+  const StripChevron = isMobileView && !isExpanded ? IconChevronUp : IconChevronDown;
 
   return (
-    <div className={`${styles.panel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed} ${isMobileCollapsed ? styles.mobileCollapsed : ''}`}>
-      {/* Compact strip for mobile - always visible */}
-      {isMobileView && (
-        <div
+    <div className={`${styles.panel} ${showControls ? styles.controlsExpanded : styles.controlsCollapsed} ${isExpanded ? '' : styles.collapsed}`}>
+      {showStrip && (
+        <button
+          type="button"
           className={styles.compactStrip}
           onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? 'Hide journey details' : 'Show journey details'}
+          title={isExpanded ? 'Hide journey details' : 'Show journey details'}
         >
           <span className={styles.compactPhaseIcon}>{phaseInfo.icon}</span>
           <div className={styles.compactProgress}>
@@ -135,18 +143,28 @@ export default function TravelInfoPanel() {
               : currentSpeed.toFixed(0)} km/s
           </span>
           <span className={styles.compactEta}>{formatDuration(remainingTime)}</span>
-          <span className={styles.compactToggle}>{isExpanded ? '▼' : '▲'}</span>
-        </div>
+          <span className={styles.compactToggle}><StripChevron size={16} /></span>
+        </button>
       )}
 
-      {/* Full detail - hidden when collapsed on mobile */}
-      {(!isMobileView || isExpanded) && (
+      {isExpanded && (
         <div className={styles.fullDetail}>
           <div className={styles.header}>
             <div className={styles.title}>
               <h2>Journey in Progress</h2>
               <div className={styles.status}>Active Travel</div>
             </div>
+            {!isMobileView && (
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={() => setIsExpanded(false)}
+                aria-label="Hide journey details"
+                title="Hide journey details"
+              >
+                <IconChevronUp size={20} />
+              </button>
+            )}
           </div>
 
           <div className={styles.route}>

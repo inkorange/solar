@@ -2,13 +2,17 @@
 
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
-import { Mesh, TextureLoader, Group } from 'three';
+import { Mesh, TextureLoader, Group, Vector3 } from 'three';
 import { PlanetData, SCALE_FACTORS, PLANETS, DWARF_PLANETS } from '@/app/data/planets';
 import { useStore } from '@/app/store/useStore';
 import { Html } from '@react-three/drei';
 import PlanetRings from './PlanetRings';
 import Atmosphere from './Atmosphere';
 import { calculateCelestialBodyPosition } from '@/app/lib/orbital-mechanics';
+
+// Called by every planet right after it places itself each frame, with the position it is
+// actually drawn at. The camera follows from here so it can never be a frame out of step.
+export const planetFrameCallback = { current: null as ((name: string, position: Vector3) => void) | null };
 
 interface PlanetProps {
   data: PlanetData;
@@ -65,6 +69,7 @@ export default function Planet({ data }: PlanetProps) {
       groupRef.current.position.x = orbitalPosition.x;
       groupRef.current.position.y = orbitalPosition.y;
       groupRef.current.position.z = orbitalPosition.z;
+      planetFrameCallback.current?.(data.name, groupRef.current.position);
     }
   });
 
