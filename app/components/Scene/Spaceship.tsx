@@ -237,6 +237,11 @@ export default function Spaceship() {
         position.y,
         position.z
       ]);
+    } else if (groupRef.current && journeyStatus === 'arrived') {
+      // Landed: keep riding the destination as it orbits instead of being left behind in space.
+      groupRef.current.position.copy(position);
+      spaceshipGroupRef.current = groupRef.current;
+      updateCameraCallback.current?.(position);
     }
   });
 

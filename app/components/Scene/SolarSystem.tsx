@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { useRef, useMemo, useEffect, Suspense, useState } from 'react';
+import { useRef, useMemo, useEffect, useCallback, Suspense, useState } from 'react';
 import { Vector3 } from 'three';
 
 // Minimal interface for OrbitControls methods/properties used in this file
@@ -14,7 +14,7 @@ interface OrbitControlsRef {
 }
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import Sun from './Sun';
-import Planet from './Planet';
+import Planet, { planetFrameCallback } from './Planet';
 import Orbit from './Orbit';
 import MoonOrbit from './MoonOrbit';
 import Stars from './Stars';
@@ -69,22 +69,21 @@ function SceneUpdater({ active }: { active: boolean }) {
             useFlipAndBurn
           );
 
-          const progress = (distanceTraveled / totalDistance) * 100;
-          const flightPhase = getFlightPhase(journeyElapsedTime, totalDistance, propulsion, useFlipAndBurn);
           const totalTime = calculateTravelTime(totalDistance, propulsion, useFlipAndBurn);
 
-          // For flip-and-burn: complete when speed reaches near 0 AND distance equals total
-          // For no flip-and-burn: complete when distance traveled reaches destination
+          // Arrive once the trip's full duration has passed. At high time speeds a single frame
+          // can step right over the last stretch (the whole braking burn can be shorter than
+          // one frame), so this can't depend on catching the ship inside a narrow window.
+          const timeUp = journeyElapsedTime >= totalTime;
+
           if (useFlipAndBurn && propulsion.supportsFlipAndBurn) {
-            // Complete when speed is very low (< 0.5 km/s) and we've reached destination (>= 99.9% distance)
-            if (currentSpeed < 0.5 && distanceTraveled >= totalDistance * 0.999) {
+            // Flip-and-burn: also arrive when nearly stopped at the destination
+            if (timeUp || (currentSpeed < 0.5 && distanceTraveled >= totalDistance * 0.999)) {
               completeJourney();
             }
-          } else {
-            // No deceleration - complete when we reach the destination (>= 99.9%)
-            if (distanceTraveled >= totalDistance * 0.999) {
-              completeJourney();
-            }
+          } else if (timeUp || distanceTraveled >= totalDistance * 0.999) {
+            // No deceleration: arrive on reaching the destination
+            completeJourney();
           }
         }
       }
@@ -103,7 +102,8 @@ function CameraController() {
   // Track last target to prevent re-animation
   const lastTargetRef = useRef<string>('');
 
-  // Store camera offset when planet-focus or follow-spaceship mode is activated
+  // Camera offset from the planet in planet-focus mode. In follow-spaceship mode it only
+  // marks that the chase position has been set up (non-null = initialised).
   const cameraOffsetRef = useRef<Vector3 | null>(null);
 
   // Reset camera offset when mode changes
@@ -115,17 +115,21 @@ function CameraController() {
   // Register camera update callback for ship to use
   useEffect(() => {
     if (cameraMode === 'follow-spaceship') {
+      const shipDelta = new Vector3();
       updateCameraCallback.current = (shipPosition: Vector3) => {
         if (!controlsRef.current || !cameraOffsetRef.current) return;
 
-        // Calculate camera and target positions directly from ship position
-        const cameraPos = shipPosition.clone().add(cameraOffsetRef.current);
-        const targetPos = shipPosition.clone();
-
-        // Direct position copy - zero lag, zero drift
-        camera.position.copy(cameraPos);
-        controlsRef.current.target.copy(targetPos);
-        controlsRef.current.update();
+        // Carry the camera along by exactly the distance the ship moved this frame. The orbit
+        // target was the ship's previous position, so the camera keeps whatever angle and zoom
+        // the user has dragged to. This runs from the ship's own frame update, so the ship and
+        // camera never differ by a frame - that lag is what shows up as jitter at high time
+        // speeds, where one frame of travel dwarfs the camera distance.
+        // No controls.update() here: a pure translation leaves the view direction unchanged,
+        // and a second update per frame would apply rotation/zoom damping twice.
+        const target = controlsRef.current.target;
+        shipDelta.subVectors(shipPosition, target);
+        camera.position.add(shipDelta);
+        target.copy(shipPosition);
       };
     } else {
       // Clear callback when not in follow mode
@@ -137,7 +141,8 @@ function CameraController() {
     };
   }, [cameraMode, camera]);
 
-  // Animation state
+  // Animation state. With `body` set, the four vectors are offsets from that body's drawn
+  // position, so the fly-in travels with the planet instead of aiming at where it used to be.
   const animationRef = useRef<{
     active: boolean;
     startTime: number;
@@ -145,16 +150,109 @@ function CameraController() {
     targetPos: Vector3;
     startLookAt: Vector3;
     targetLookAt: Vector3;
+    body?: string;
+    bodyPos?: Vector3; // last known position, used only if the body isn't being drawn
   } | null>(null);
 
+  // Where each planet was actually drawn on its latest frame (see planetFrameCallback).
+  const drawnPositionsRef = useRef(new Map<string, Vector3>());
+
+  // Advance the fly-in. `origin` is the body's drawn position for body-relative animations.
+  const stepAnimation = useCallback((origin: Vector3 | null) => {
+    const anim = animationRef.current;
+    const controls = controlsRef.current;
+    if (!anim || !anim.active || !controls) return;
+
+    const t = Math.min((Date.now() - anim.startTime) / 1000 / 1.5, 1);
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease in-out
+
+    camera.position.lerpVectors(anim.startPos, anim.targetPos, eased);
+    controls.target.lerpVectors(anim.startLookAt, anim.targetLookAt, eased);
+    if (origin) {
+      camera.position.add(origin);
+      controls.target.add(origin);
+    }
+    controls.update();
+
+    if (t >= 1) {
+      anim.active = false;
+      // From here the planet-focus follow takes over; non-null marks it as set up.
+      if (anim.body && useStore.getState().cameraMode === 'planet-focus') {
+        cameraOffsetRef.current = camera.position.clone().sub(controls.target);
+      }
+    }
+  }, [camera]);
+
+  // Start a fly-in to a body that keeps up with the body while it moves. `targetPos` and
+  // `bodyPosAtTarget` must come from the same simulation time.
+  const flyToBody = useCallback((name: string, targetPos: Vector3, bodyPosAtTarget: Vector3) => {
+    if (!controlsRef.current) return;
+    const drawn = drawnPositionsRef.current.get(name) ?? bodyPosAtTarget;
+    animationRef.current = {
+      active: true,
+      startTime: Date.now(),
+      startPos: camera.position.clone().sub(drawn),
+      targetPos: targetPos.clone().sub(bodyPosAtTarget),
+      startLookAt: controlsRef.current.target.clone().sub(drawn),
+      targetLookAt: new Vector3(0, 0, 0),
+      body: name,
+      bodyPos: drawn.clone(),
+    };
+  }, [camera]);
+
+  // Planet-focus follow. Runs from each planet's own frame update, straight after it has
+  // placed itself, so the camera and the planet always agree on where the planet is. Working
+  // the planet's position out separately from the clock put the two a frame or more apart,
+  // which at high time speeds made the planet shake in view.
+  useEffect(() => {
+    const drawn = drawnPositionsRef.current;
+    const delta = new Vector3();
+    planetFrameCallback.current = (name, position) => {
+      const stored = drawn.get(name);
+      if (stored) stored.copy(position);
+      else drawn.set(name, position.clone());
+
+      const controls = controlsRef.current;
+      if (!controls) return;
+
+      const anim = animationRef.current;
+      if (anim?.active) {
+        if (anim.body === name) stepAnimation(position);
+        return;
+      }
+
+      const st = useStore.getState();
+      if (st.cameraMode !== 'planet-focus' || st.focusedPlanetName !== name || !cameraOffsetRef.current) return;
+
+      // Shift camera and orbit target by the planet's movement; angle and zoom are untouched.
+      delta.subVectors(position, controls.target);
+      camera.position.add(delta);
+      controls.target.copy(position);
+    };
+    return () => {
+      planetFrameCallback.current = null;
+    };
+  }, [camera, stepAnimation]);
+
   // An explicit view pick (buttons / C key) always re-frames, even if the mode didn't change.
-  // Free view flies back out to the whole-system overview.
+  // Free view just lets go of the camera where it is (beside the ship, or at the planet);
+  // picking Free again while already free flies back out to the whole-system overview.
   const cameraRequest = useStore((s) => s.cameraRequest);
+  const prevModeRef = useRef(cameraMode);
   useEffect(() => {
     if (!cameraRequest || !controlsRef.current) return;
     cameraOffsetRef.current = null;
-    lastTargetRef.current = '';
-    if (useStore.getState().cameraMode === 'free') {
+    const st = useStore.getState();
+    if (st.cameraMode !== 'free') {
+      lastTargetRef.current = '';
+    } else if (prevModeRef.current !== 'free') {
+      // Stay put: drop any fly-in still running, and mark the stored target as already
+      // handled so the target effect below doesn't fly back to the last focused planet.
+      animationRef.current = null;
+      if (st.cameraTarget && st.focusedPlanetName) {
+        lastTargetRef.current = `${st.focusedPlanetName}-${st.cameraTarget.join(',')}`;
+      }
+    } else {
       animationRef.current = {
         active: true,
         startTime: Date.now(),
@@ -165,6 +263,11 @@ function CameraController() {
       };
     }
   }, [cameraRequest, camera]);
+
+  // Must stay below the effect above, which needs the mode from before this pick.
+  useEffect(() => {
+    prevModeRef.current = cameraMode;
+  }, [cameraMode]);
 
   // Initialize animation when target changes or when entering ship follow mode
   useEffect(() => {
@@ -192,15 +295,20 @@ function CameraController() {
     const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
 
     // Setup animation
-    animationRef.current = {
-      active: true,
-      startTime: Date.now(),
-      startPos: camera.position.clone(),
-      targetPos: new Vector3(...cameraTarget),
-      startLookAt: controlsRef.current.target.clone(),
-      targetLookAt: new Vector3(planetPos.x, planetPos.y, planetPos.z),
-    };
-  }, [cameraTarget, focusedPlanetName, camera, cameraMode]);
+    const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
+    if (cameraMode === 'planet-focus') {
+      flyToBody(planet.name, new Vector3(...cameraTarget), planetPosVec);
+    } else {
+      animationRef.current = {
+        active: true,
+        startTime: Date.now(),
+        startPos: camera.position.clone(),
+        targetPos: new Vector3(...cameraTarget),
+        startLookAt: controlsRef.current.target.clone(),
+        targetLookAt: planetPosVec,
+      };
+    }
+  }, [cameraTarget, focusedPlanetName, camera, cameraMode, flyToBody]);
 
   // Run animation and handle camera modes
   useFrame(() => {
@@ -209,36 +317,10 @@ function CameraController() {
     // Handle animation
     const anim = animationRef.current;
     if (anim && anim.active) {
-      const elapsed = (Date.now() - anim.startTime) / 1000;
-      const duration = 1.5;
-      const t = Math.min(elapsed / duration, 1);
-
-      // Ease in-out
-      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-
-      // Update camera
-      camera.position.lerpVectors(anim.startPos, anim.targetPos, eased);
-      controlsRef.current.target.lerpVectors(anim.startLookAt, anim.targetLookAt, eased);
-      controlsRef.current.update();
-
-      if (t >= 1) {
-        anim.active = false;
-
-        // Initialize camera offset for planet-focus mode after animation completes
-        if (cameraMode === 'planet-focus' && focusedPlanetName) {
-          const allBodies = [...PLANETS, ...DWARF_PLANETS];
-          const planet = allBodies.find(p => p.name === focusedPlanetName);
-          if (planet) {
-            const { scaleMode, simulationTime } = useStore.getState();
-            const scaleFactor = scaleMode === 'visual' ? SCALE_FACTORS.VISUAL : SCALE_FACTORS.REALISTIC;
-            const planetPos = calculateCelestialBodyPosition(simulationTime, planet, scaleFactor.DISTANCE, allBodies, scaleMode);
-            const planetPosVec = new Vector3(planetPos.x, planetPos.y, planetPos.z);
-
-            // Set the camera offset based on final animated position
-            cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
-          }
-        }
-      }
+      // Body-relative fly-ins are stepped from the planet's frame update (planetFrameCallback);
+      // only step here if that planet isn't being drawn.
+      if (!anim.body) stepAnimation(null);
+      else if (!drawnPositionsRef.current.has(anim.body)) stepAnimation(anim.bodyPos ?? null);
       return; // Skip camera mode updates during animation
     }
 
@@ -283,7 +365,7 @@ function CameraController() {
         const offsetPos = travelDirection.clone().multiplyScalar(-cameraDistance)
           .add(new Vector3(0, cameraHeight, 0));
 
-        // Store the offset relative to ship position
+        // Mark the chase position as set up; from here the ship callback keeps it attached
         cameraOffsetRef.current = offsetPos;
 
         // Set initial camera position and look-at target
@@ -306,29 +388,9 @@ function CameraController() {
         // Entering planet view: fly in to the same close framing used when a planet is picked,
         // instead of snapping to a distant default. The animation's completion sets the offset.
         if (!cameraOffsetRef.current) {
-          animationRef.current = {
-            active: true,
-            startTime: Date.now(),
-            startPos: camera.position.clone(),
-            targetPos: new Vector3(...cameraPositionFor(planet, simulationTime, scaleMode)),
-            startLookAt: controlsRef.current.target.clone(),
-            targetLookAt: planetPosVec,
-          };
-          return;
+          flyToBody(planet.name, new Vector3(...cameraPositionFor(planet, simulationTime, scaleMode)), planetPosVec);
         }
-
-        // Calculate how much the planet has moved
-        const previousTarget = controlsRef.current.target.clone();
-        const planetMovement = planetPosVec.clone().sub(previousTarget);
-
-        // Move both camera and target by the same amount to maintain relative position
-        camera.position.add(planetMovement);
-        controlsRef.current.target.copy(planetPosVec);
-
-        // Update the stored offset based on current camera position (accounts for user rotation/zoom)
-        cameraOffsetRef.current = camera.position.clone().sub(planetPosVec);
-
-        controlsRef.current.update();
+        // Once set up, following the planet happens in planetFrameCallback.
       }
     } else {
       // 'free' mode doesn't need special handling - orbit controls work normally
@@ -339,22 +401,22 @@ function CameraController() {
   // Disable controls when propulsion selector or other modal is open
   const controlsEnabled = journeyStatus !== 'selecting-propulsion';
 
-  // Disable damping entirely when following spaceship to prevent any lag
-  const enableDamping = cameraMode === 'follow-spaceship' ? false : true;
+  // Panning would drag the orbit target off the ship, which the follow camera pins every frame.
+  const panEnabled = controlsEnabled && cameraMode !== 'follow-spaceship';
   const dampingFactor = 0.1;
 
   return (
     <OrbitControls
       // store the internal OrbitControls instance in our typed ref via callback
   ref={(inst: unknown) => { controlsRef.current = inst as OrbitControlsRef; }}
-      enablePan={controlsEnabled}
+      enablePan={panEnabled}
       enableZoom={controlsEnabled}
       enableRotate={controlsEnabled}
       minDistance={0.01}
       maxDistance={2500}
       zoomSpeed={1.0}
       rotateSpeed={0.8}
-      enableDamping={enableDamping}
+      enableDamping
       dampingFactor={dampingFactor}
       // Slow orbit behind the splash; stops as soon as it is dismissed.
       autoRotate={showWelcome}

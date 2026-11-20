@@ -587,6 +587,11 @@ export function calculateDistanceTraveled(
   const accelKmPerSecSq = acceleration / 1000;
   const totalTime = calculateTravelTime(totalDistance, propulsion, useFlipAndBurn);
 
+  // The trip is over at totalTime. Past it the braking formula below curves back on itself
+  // (distance shrinks, then goes negative), so a large time step at high time speeds must not
+  // be allowed to run beyond the end.
+  if (elapsedTime >= totalTime) return totalDistance;
+
   // Low thrust systems - approximate as linear
   if (acceleration < 0.001) {
     const progress = Math.min(1, elapsedTime / totalTime);

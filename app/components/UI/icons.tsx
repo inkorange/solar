@@ -24,6 +24,12 @@ export const IconSearch = ({ size, ...p }: P) => (
 export const IconClose = ({ size, ...p }: P) => (
   <svg {...base(size)} strokeWidth={2} {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>
 );
+export const IconChevronUp = ({ size, ...p }: P) => (
+  <svg {...base(size)} strokeWidth={2} {...p}><path d="M6 15l6-6 6 6" /></svg>
+);
+export const IconChevronDown = ({ size, ...p }: P) => (
+  <svg {...base(size)} strokeWidth={2} {...p}><path d="M6 9l6 6 6-6" /></svg>
+);
 export const IconPlay = ({ size = 16, ...p }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden {...p}><path d="M7 4.5v15l13-7.5z" /></svg>
 );

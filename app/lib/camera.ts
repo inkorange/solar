@@ -12,7 +12,7 @@ export const shipAvailable = () => {
 
 /**
  * Switch the camera view and make the scene act on it (used by the view buttons and the C key):
- * - free:   fly back out to the whole-system overview
+ * - free:   release the camera where it is; picked again while already free, fly out to the overview
  * - ship:   jump in behind the spacecraft (only during a trip)
  * - planet: fly in close to the selected / last-viewed body, else the trip destination, else Earth
  */
